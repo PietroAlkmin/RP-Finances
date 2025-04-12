@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Melhores Ativos | Dashboard Financeiro Global</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/new-layout.css">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <div class="sidebar-logo">
+            <h1>RP Finance</h1>
+        </div>
+        <ul class="sidebar-menu">
+            <li><a href="index.html"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+            <li><a href="best-assets.html" class="active"><i class="fas fa-star"></i> Melhores Ativos</a></li>
+            <li><a href="news.html"><i class="fas fa-newspaper"></i> Notícias</a></li>
+            <li><a href="portfolio.html"><i class="fas fa-briefcase"></i> Meu Portfólio</a></li>
+            <li><a href="#" id="settings-link"><i class="fas fa-cog"></i> Configurações</a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>Melhores Ativos</h1>
+            <p>Descubra os ativos com melhor desempenho em diferentes categorias</p>
+            <p class="date" id="current-date">Atualizado em: </p>
+
+        <main class="main-content">
+            <!-- Indicador de carregamento -->
+            <div id="loading-indicator" class="loading-overlay">
+                <div class="loading-spinner"></div>
+                <p>Carregando dados do mercado...</p>
+            </div>
+
+            <!-- Mensagem de erro -->
+            <div id="error-message" class="error-message hidden">
+                <div class="error-icon">⚠️</div>
+                <h3>Limite de API Excedido</h3>
+                <p>O limite de chamadas à API Alpha Vantage foi excedido.</p>
+                <p>Estamos exibindo dados simulados ou em cache enquanto isso.</p>
+                <p><small>Nota: A API gratuita permite apenas 25 chamadas por dia. Você já atingiu esse limite.</small></p>
+                <p><small>Para remover essa limitação, é necessário assinar um plano premium em <a href="https://www.alphavantage.co/premium/" target="_blank" rel="noopener noreferrer">alphavantage.co/premium</a>.</small></p>
+                <button type="button" id="retry-button" class="retry-button">Tentar novamente</button>
+            </div>
+
+            <!-- Filtros de Período -->
+            <section class="card filter-card">
+                <h2>Filtros</h2>
+                <div class="filter-container">
+                    <div class="period-filter">
+                        <h3>Período</h3>
+                        <div class="button-group">
+                            <button type="button" class="filter-button active" data-period="week">Semana</button>
+                            <button type="button" class="filter-button" data-period="month">Mês</button>
+                            <button type="button" class="filter-button" data-period="year">Ano</button>
+                        </div>
+                    </div>
+                    <div class="asset-type-filter">
+                        <h3>Tipo de Ativo</h3>
+                        <div class="button-group">
+                            <button type="button" class="filter-button active" data-type="all">Todos</button>
+                            <button type="button" class="filter-button" data-type="stocks">Ações</button>
+                            <button type="button" class="filter-button" data-type="crypto">Criptomoedas</button>
+                            <button type="button" class="filter-button" data-type="reits">Fundos Imobiliários</button>
+                            <button type="button" class="filter-button" data-type="fixed-income">Renda Fixa</button>
+                            <button type="button" class="filter-button" data-type="etfs">ETFs</button>
+                            <button type="button" class="filter-button" data-type="gold">Ouro e Derivados</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Melhores Ativos -->
+            <section class="card best-assets-card">
+                <h2>Melhores Ativos do Período</h2>
+                <div class="chart-container">
+                    <canvas id="best-assets-chart"></canvas>
+                </div>
+                <div class="table-container">
+                    <table id="best-assets-table">
+                        <thead>
+                            <tr>
+                                <th>Ativo</th>
+                                <th>Tipo</th>
+                                <th>Último Preço</th>
+                                <th>Variação</th>
+                                <th>Volume</th>
+                                <th>Tendência</th>
+                            </tr>
+                        </thead>
+                        <tbody id="best-assets-tbody">
+                            <!-- Conteúdo será preenchido via JavaScript -->
+                            <tr class="loading-row">
+                                <td colspan="6">Carregando dados...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Desempenho por Categoria -->
+            <section class="card category-performance-card">
+                <h2>Desempenho por Categoria</h2>
+                <div class="chart-container">
+                    <canvas id="category-performance-chart"></canvas>
+                </div>
+                <div class="categories-grid" id="categories-grid">
+                    <!-- Conteúdo será preenchido via JavaScript -->
+                </div>
+            </section>
+
+            <!-- Comparativo de Ativos -->
+            <section class="card asset-comparison-card">
+                <h2>Comparativo de Ativos</h2>
+                <div class="comparison-container">
+                    <div class="comparison-filters">
+                        <div class="asset-selector">
+                            <label for="asset1">Ativo 1:</label>
+                            <select id="asset1" class="asset-select">
+                                <option value="">Selecione um ativo</option>
+                                <!-- Opções serão preenchidas via JavaScript -->
+                            </select>
+                        </div>
+                        <div class="asset-selector">
+                            <label for="asset2">Ativo 2:</label>
+                            <select id="asset2" class="asset-select">
+                                <option value="">Selecione um ativo</option>
+                                <!-- Opções serão preenchidas via JavaScript -->
+                            </select>
+                        </div>
+                        <button type="button" id="compare-button" class="compare-button">Comparar</button>
+                    </div>
+                    <div class="comparison-chart-container">
+                        <canvas id="comparison-chart"></canvas>
+                    </div>
+                    <div class="comparison-metrics" id="comparison-metrics">
+                        <!-- Conteúdo será preenchido via JavaScript -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Seção de criptomoedas removida devido a problemas de compatibilidade -->
+        </main>
+
+        <footer class="footer">
+            <p>Dashboard criado com dados de múltiplas APIs financeiras | © 2025</p>
+            <p>Atualização em tempo real ativada</p>
+        </footer>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Configurações</h2>
+                <button type="button" class="close-button" id="close-settings">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h3>Aparência</h3>
+                    <div class="setting-item">
+                        <label for="theme-select">Tema</label>
+                        <select id="theme-select">
+                            <option value="light">Claro</option>
+                            <option value="dark">Escuro</option>
+                            <option value="system">Sistema</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>Dados</h3>
+                    <div class="setting-item">
+                        <label for="refresh-interval">Intervalo de atualização</label>
+                        <select id="refresh-interval">
+                            <option value="30">30 segundos</option>
+                            <option value="60">1 minuto</option>
+                            <option value="300">5 minutos</option>
+                            <option value="600">10 minutos</option>
+                            <option value="1800">30 minutos</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="cache-duration">Duração do cache</label>
+                        <select id="cache-duration">
+                            <option value="300">5 minutos</option>
+                            <option value="600">10 minutos</option>
+                            <option value="1800">30 minutos</option>
+                            <option value="3600">1 hora</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>Preferências</h3>
+                    <div class="setting-item checkbox-item">
+                        <input type="checkbox" id="show-notifications" checked>
+                        <label for="show-notifications">Mostrar notificações</label>
+                    </div>
+                    <div class="setting-item checkbox-item">
+                        <input type="checkbox" id="auto-refresh" checked>
+                        <label for="auto-refresh">Atualização automática</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" id="reset-settings">Restaurar padrões</button>
+                <button type="button" class="btn btn-primary" id="save-settings">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/cache-manager.js"></script>
+    <script src="js/api-manager.js"></script>
+    <script src="js/user-preferences.js"></script>
+    <script src="js/auth-manager.js"></script>
+    <script src="js/data-loader.js"></script>
+
+    <!-- Novos módulos de dados -->
+    <!-- Crypto módulos removidos para evitar problemas -->
+    <script src="js/economic-loader.js"></script>
+    <script src="js/stock-loader.js"></script>
+
+    <script src="js/charts.js"></script>
+    <script src="js/best-assets.js"></script>
+    <script src="js/realtime-updater.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/settings.js"></script>
+</body>
+</html>

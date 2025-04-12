@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Financeiro Global</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/new-layout.css">
+    <!-- Crypto CSS removido para evitar problemas -->
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <div class="sidebar-logo">
+            <h1>RP Finance</h1>
+        </div>
+        <ul class="sidebar-menu">
+            <li><a href="index.html" class="active"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+            <li><a href="best-assets.html"><i class="fas fa-star"></i> Melhores Ativos</a></li>
+            <li><a href="news.html"><i class="fas fa-newspaper"></i> Notícias</a></li>
+            <li><a href="portfolio.html"><i class="fas fa-briefcase"></i> Meu Portfólio</a></li>
+            <li><a href="#" id="settings-link"><i class="fas fa-cog"></i> Configurações</a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>Dashboard</h1>
+            <p>Visão geral do desempenho financeiro e estoque</p>
+            <p class="date" id="current-date">Atualizado em: </p>
+
+        <main class="main-content">
+            <!-- Indicador de carregamento -->
+            <div id="loading-indicator" class="loading-overlay">
+                <div class="loading-spinner"></div>
+                <p>Carregando dados do mercado...</p>
+            </div>
+
+            <!-- Mensagem de erro -->
+            <div id="error-message" class="error-message hidden">
+                <div class="error-icon">⚠️</div>
+                <h3>Erro ao carregar dados</h3>
+                <p>Não foi possível obter dados atualizados. Tentando novamente em breve.</p>
+                <p>Enquanto isso, estamos exibindo dados simulados ou em cache.</p>
+                <button type="button" id="retry-button" class="retry-button">Tentar novamente</button>
+            </div>
+
+            <!-- Resumo do Mercado -->
+            <section class="card summary-card">
+                <h2>Resumo do Mercado</h2>
+                <div class="summary-content" id="market-summary">
+                    <!-- Conteúdo será preenchido via JavaScript -->
+                </div>
+            </section>
+
+            <!-- Desempenho de Índices -->
+            <section class="card indices-card">
+                <h2>Desempenho de Índices Globais</h2>
+                <div class="chart-container">
+                    <canvas id="indices-chart"></canvas>
+                </div>
+                <div class="table-container">
+                    <table id="indices-table">
+                        <thead>
+                            <tr>
+                                <th>Índice</th>
+                                <th>Último</th>
+                                <th>Var. Período</th>
+                                <th>Var. Semana</th>
+                                <th>Volatilidade</th>
+                                <th>Tendência</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Conteúdo será preenchido via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Mapa de Desempenho por Região -->
+            <section class="card regions-card">
+                <h2>Desempenho por Região</h2>
+                <div class="regions-container" id="regions-container">
+                    <!-- Conteúdo será preenchido via JavaScript -->
+                </div>
+            </section>
+
+            <!-- Desempenho por Setor -->
+            <section class="card sectors-card">
+                <h2>Desempenho por Setor</h2>
+                <div class="chart-container">
+                    <canvas id="sectors-chart"></canvas>
+                </div>
+                <div class="sectors-grid" id="sectors-grid">
+                    <!-- Conteúdo será preenchido via JavaScript -->
+                </div>
+            </section>
+
+            <!-- Ações em Destaque -->
+            <section class="card stocks-card">
+                <h2>Ações em Destaque</h2>
+                <div class="stocks-tabs">
+                    <button type="button" class="tab-button active" data-tab="best">Melhores</button>
+                    <button type="button" class="tab-button" data-tab="worst">Piores</button>
+                    <button type="button" class="tab-button" data-tab="volatile">Mais Voláteis</button>
+                </div>
+                <div class="stocks-content">
+                    <div class="tab-content active" id="best-stocks">
+                        <!-- Conteúdo será preenchido via JavaScript -->
+                    </div>
+                    <div class="tab-content" id="worst-stocks">
+                        <!-- Conteúdo será preenchido via JavaScript -->
+                    </div>
+                    <div class="tab-content" id="volatile-stocks">
+                        <!-- Conteúdo será preenchido via JavaScript -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Correlações entre Índices -->
+            <section class="card correlations-card">
+                <h2>Correlações entre Índices</h2>
+                <div class="correlations-container" id="correlations-container">
+                    <!-- Conteúdo será preenchido via JavaScript -->
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>Dashboard criado com dados de múltiplas APIs financeiras | © 2025</p>
+            <p>Atualização em tempo real ativada</p>
+        </footer>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Configurações</h2>
+                <button type="button" class="close-button" id="close-settings">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h3>Aparência</h3>
+                    <div class="setting-item">
+                        <label for="theme-select">Tema</label>
+                        <select id="theme-select">
+                            <option value="light">Claro</option>
+                            <option value="dark">Escuro</option>
+                            <option value="system">Sistema</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>Dados</h3>
+                    <div class="setting-item">
+                        <label for="refresh-interval">Intervalo de atualização</label>
+                        <select id="refresh-interval">
+                            <option value="30">30 segundos</option>
+                            <option value="60">1 minuto</option>
+                            <option value="300">5 minutos</option>
+                            <option value="600">10 minutos</option>
+                            <option value="1800">30 minutos</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="cache-duration">Duração do cache</label>
+                        <select id="cache-duration">
+                            <option value="300">5 minutos</option>
+                            <option value="600">10 minutos</option>
+                            <option value="1800">30 minutos</option>
+                            <option value="3600">1 hora</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>Preferências</h3>
+                    <div class="setting-item checkbox-item">
+                        <input type="checkbox" id="show-notifications" checked>
+                        <label for="show-notifications">Mostrar notificações</label>
+                    </div>
+                    <div class="setting-item checkbox-item">
+                        <input type="checkbox" id="auto-refresh" checked>
+                        <label for="auto-refresh">Atualização automática</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" id="reset-settings">Restaurar padrões</button>
+                <button type="button" class="btn btn-primary" id="save-settings">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/cache-manager.js"></script>
+    <script src="js/api-manager.js"></script>
+    <script src="js/user-preferences.js"></script>
+    <script src="js/auth-manager.js"></script>
+    <script src="js/data-loader.js"></script>
+
+    <!-- Novos módulos de dados -->
+    <!-- Crypto módulos removidos para evitar problemas -->
+    <script src="js/economic-loader.js"></script>
+    <script src="js/stock-loader.js"></script>
+
+    <script src="js/charts.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/realtime-updater.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/settings.js"></script>
+</body>
+</html>

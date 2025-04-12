@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu Portfólio | Dashboard Financeiro Global</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/new-layout.css">
+    <link rel="stylesheet" href="css/open-finance.css">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <div class="sidebar-logo">
+            <h1>RP Finance</h1>
+        </div>
+        <ul class="sidebar-menu">
+            <li><a href="index.html"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+            <li><a href="best-assets.html"><i class="fas fa-star"></i> Melhores Ativos</a></li>
+            <li><a href="news.html"><i class="fas fa-newspaper"></i> Notícias</a></li>
+            <li><a href="portfolio.html" class="active"><i class="fas fa-briefcase"></i> Meu Portfólio</a></li>
+            <li><a href="#" id="settings-link"><i class="fas fa-cog"></i> Configurações</a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>Meu Portfólio</h1>
+            <p>Gerencie seus investimentos e acompanhe seu desempenho</p>
+            <p class="date" id="current-date">Atualizado em: </p>
+        </div>
+
+        <main class="main-content" style="width: 100%; display: block;">
+            <!-- Indicador de carregamento -->
+            <div id="loading-indicator" class="loading-overlay">
+                <div class="loading-spinner"></div>
+                <p>Carregando dados do portfólio...</p>
+            </div>
+
+            <!-- Resumo do Portfólio -->
+            <div class="portfolio-summary-row">
+                <div class="metric-card">
+                    <div class="metric-title"><i class="fas fa-wallet"></i> Valor Total</div>
+                    <div class="metric-value" id="portfolio-total-value">R$ 0,00</div>
+                    <div class="metric-change" id="portfolio-total-change">0,00%</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title"><i class="fas fa-chart-line"></i> Rentabilidade</div>
+                    <div class="metric-value" id="portfolio-return">0,00%</div>
+                    <div class="metric-period">Desde o início</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title"><i class="fas fa-coins"></i> Ativos</div>
+                    <div class="metric-value" id="portfolio-assets-count">0</div>
+                    <div class="metric-period">Em seu portfólio</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title"><i class="fas fa-balance-scale"></i> Diversificação</div>
+                    <div class="metric-value" id="portfolio-diversification">0,00%</div>
+                    <div class="metric-period">Índice de diversificação</div>
+                </div>
+            </div>
+
+            <!-- Gráficos do Portfólio -->
+            <div class="portfolio-charts-row">
+                <div class="card chart-card">
+                    <h2>Alocação por Classe</h2>
+                    <div class="chart-container">
+                        <canvas id="allocation-chart"></canvas>
+                    </div>
+                </div>
+                <div class="card chart-card">
+                    <h2>Desempenho do Portfólio</h2>
+                    <div class="chart-container">
+                        <canvas id="performance-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Open Finance Integration -->
+            <div class="card open-finance-section">
+                <div class="open-finance-header">
+                    <h2><i class="fas fa-university"></i> Open Finance</h2>
+                    <button type="button" class="connect-bank-btn" id="connect-bank-btn">
+                        <i class="fas fa-link"></i>Conectar Banco
+                    </button>
+                </div>
+                <div id="open-finance-content">
+                    <div id="open-finance-empty" class="empty-accounts">
+                        <i class="fas fa-university"></i>
+                        <p>Nenhuma conta bancária conectada</p>
+                        <p>Conecte suas contas bancárias para visualizar seus dados financeiros em um só lugar</p>
+                        <button type="button" class="connect-bank-btn" id="empty-connect-btn">
+                            <i class="fas fa-link"></i>Conectar Banco
+                        </button>
+                    </div>
+                    <div id="connected-accounts" class="connected-accounts hidden">
+                        <!-- Accounts will be added here dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de Ativos -->
+            <div class="card assets-card" style="width: 100%; overflow-x: auto;">
+                <div class="card-header-actions">
+                    <h2>Meus Ativos</h2>
+                    <button type="button" class="btn btn-primary" id="add-asset-btn">
+                        <i class="fas fa-plus btn-icon"></i>Adicionar Ativo
+                    </button>
+                </div>
+
+                <div class="table-container" style="width: 100%; overflow-x: auto;">
+                    <table id="assets-table">
+                        <thead>
+                            <tr>
+                                <th>Ativo</th>
+                                <th>Classe</th>
+                                <th>Quantidade</th>
+                                <th>Preço de Compra</th>
+                                <th>Preço Atual</th>
+                                <th>Valor Total</th>
+                                <th>Variação</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="assets-table-body">
+                            <!-- Conteúdo será preenchido via JavaScript -->
+                            <tr class="empty-state">
+                                <td colspan="8" class="empty-message">
+                                    <div class="empty-content">
+                                        <i class="fas fa-briefcase empty-icon"></i>
+                                        <p>Seu portfólio está vazio</p>
+                                        <p class="empty-description">Adicione ativos para começar a acompanhar seu desempenho</p>
+                                        <button type="button" class="btn btn-primary" id="empty-add-btn">
+                                            <i class="fas fa-plus btn-icon"></i>Adicionar Ativo
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>Dashboard criado com dados de múltiplas APIs financeiras | © 2025</p>
+            <p>Atualização em tempo real ativada</p>
+        </footer>
+    </div>
+
+    <!-- Modal para adicionar/editar ativo -->
+    <div id="asset-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="asset-modal-title">Adicionar Ativo</h2>
+                <button type="button" class="close-button" id="close-asset-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="asset-form">
+                    <input type="hidden" id="asset-id">
+                    <div class="form-group">
+                        <label for="asset-symbol">Símbolo/Ticker</label>
+                        <input type="text" id="asset-symbol" required placeholder="Ex: PETR4, AAPL, ITUB4">
+                    </div>
+                    <div class="form-group">
+                        <label for="asset-name">Nome do Ativo</label>
+                        <input type="text" id="asset-name" required placeholder="Ex: Petrobras, Apple, Itaú">
+                    </div>
+                    <div class="form-group">
+                        <label for="asset-class">Classe de Ativo</label>
+                        <select id="asset-class" required>
+                            <option value="">Selecione uma classe</option>
+                            <option value="stock">Ações</option>
+                            <option value="reit">FIIs</option>
+                            <option value="crypto">Criptomoedas</option>
+                            <option value="etf">ETFs</option>
+                            <option value="bond">Renda Fixa</option>
+                            <option value="international">Ações Internacionais</option>
+                            <option value="other">Outros</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="asset-quantity">Quantidade</label>
+                            <input type="number" id="asset-quantity" required min="0.00001" step="0.00001" placeholder="Ex: 100">
+                        </div>
+                        <div class="form-group">
+                            <label for="asset-price">Preço de Compra (R$)</label>
+                            <input type="number" id="asset-price" required min="0.01" step="0.01" placeholder="Ex: 25.50">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="asset-date">Data de Compra</label>
+                        <input type="date" id="asset-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="asset-notes">Notas (opcional)</label>
+                        <textarea id="asset-notes" rows="2" placeholder="Adicione notas sobre este investimento"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" id="cancel-asset">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="save-asset">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de confirmação para excluir ativo -->
+    <div id="confirm-delete-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Confirmar Exclusão</h2>
+                <button type="button" class="close-button" id="close-confirm-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir o ativo <strong id="delete-asset-name"></strong>?</p>
+                <p>Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" id="cancel-delete">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="confirm-delete">Excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Configurações</h2>
+                <button type="button" class="close-button" id="close-settings">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h3>Aparência</h3>
+                    <div class="setting-item">
+                        <label for="theme-select">Tema</label>
+                        <select id="theme-select">
+                            <option value="light">Claro</option>
+                            <option value="dark">Escuro</option>
+                            <option value="system">Sistema</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>Dados</h3>
+                    <div class="setting-item">
+                        <label for="refresh-interval">Intervalo de atualização</label>
+                        <select id="refresh-interval">
+                            <option value="30">30 segundos</option>
+                            <option value="60">1 minuto</option>
+                            <option value="300">5 minutos</option>
+                            <option value="600">10 minutos</option>
+                            <option value="1800">30 minutos</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="cache-duration">Duração do cache</label>
+                        <select id="cache-duration">
+                            <option value="300">5 minutos</option>
+                            <option value="600">10 minutos</option>
+                            <option value="1800">30 minutos</option>
+                            <option value="3600">1 hora</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>Preferências</h3>
+                    <div class="setting-item checkbox-item">
+                        <input type="checkbox" id="show-notifications" checked>
+                        <label for="show-notifications">Mostrar notificações</label>
+                    </div>
+                    <div class="setting-item checkbox-item">
+                        <input type="checkbox" id="auto-refresh" checked>
+                        <label for="auto-refresh">Atualização automática</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" id="reset-settings">Restaurar padrões</button>
+                <button type="button" class="btn btn-primary" id="save-settings">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fallback styles (in case CSS fails to load) -->
+    <script src="js/fallback-styles.js"></script>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/cache-manager.js"></script>
+    <script src="js/api-manager.js"></script>
+    <script src="js/user-preferences.js"></script>
+    <script src="js/auth-manager.js"></script>
+    <script src="js/data-loader.js"></script>
+
+    <!-- Novos módulos de dados -->
+    <script src="js/economic-loader.js"></script>
+    <script src="js/stock-loader.js"></script>
+    <script src="js/pluggy-manager.js"></script>
+
+    <script src="js/charts.js"></script>
+    <script src="js/portfolio.js"></script>
+    <script src="js/realtime-updater.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/settings.js"></script>
+</body>
+</html>

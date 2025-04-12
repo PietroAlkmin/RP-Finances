@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notícias Financeiras | Dashboard Financeiro Global</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/new-layout.css">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <div class="sidebar-logo">
+            <h1>RP Finance</h1>
+        </div>
+        <ul class="sidebar-menu">
+            <li><a href="index.html"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+            <li><a href="best-assets.html"><i class="fas fa-star"></i> Melhores Ativos</a></li>
+            <li><a href="news.html" class="active"><i class="fas fa-newspaper"></i> Notícias</a></li>
+            <li><a href="portfolio.html"><i class="fas fa-briefcase"></i> Meu Portfólio</a></li>
+            <li><a href="#" id="settings-link"><i class="fas fa-cog"></i> Configurações</a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>Notícias Financeiras</h1>
+            <p>Acompanhe as últimas notícias e análises do mercado financeiro</p>
+            <p class="date" id="current-date">Atualizado em: </p>
+        </div>
+
+        <main class="main-content news-content">
+            <!-- Indicador de carregamento -->
+            <div id="loading-indicator" class="loading-overlay">
+                <div class="loading-spinner"></div>
+                <p>Carregando notícias...</p>
+            </div>
+
+            <!-- Mensagem de erro -->
+            <div id="error-message" class="error-message hidden">
+                <div class="error-icon">⚠️</div>
+                <h3>Limite de API Excedido</h3>
+                <p>O limite de chamadas à API News API foi excedido.</p>
+                <p>Estamos exibindo notícias simuladas ou em cache enquanto isso.</p>
+                <p><small>Nota: A API gratuita permite apenas 100 chamadas por dia. Você já atingiu esse limite.</small></p>
+                <p><small>Para remover essa limitação, é necessário assinar um plano premium em <a href="https://newsapi.org/pricing" target="_blank" rel="noopener noreferrer">newsapi.org/pricing</a>.</small></p>
+                <button type="button" id="retry-button" class="retry-button">Tentar novamente</button>
+            </div>
+
+            <!-- Filtros de Notícias -->
+            <section class="card filter-card">
+                <h2>Filtros</h2>
+                <div class="filter-container">
+                    <div class="source-filter">
+                        <h3>Fontes</h3>
+                        <div class="button-group">
+                            <button type="button" class="filter-button active" data-source="all">Todas</button>
+                            <button type="button" class="filter-button" data-source="infomoney">InfoMoney</button>
+                            <button type="button" class="filter-button" data-source="bbc">BBC</button>
+                            <button type="button" class="filter-button" data-source="forbes">Forbes</button>
+                            <button type="button" class="filter-button" data-source="g1">G1</button>
+                            <button type="button" class="filter-button" data-source="investing">Investing.com</button>
+                        </div>
+                    </div>
+                    <div class="language-filter">
+                        <h3>Idioma</h3>
+                        <div class="button-group">
+                            <button type="button" class="filter-button active" data-language="all">Todos</button>
+                            <button type="button" class="filter-button" data-language="pt">Português</button>
+                            <button type="button" class="filter-button" data-language="en">Inglês</button>
+                        </div>
+                    </div>
+                    <div class="topic-filter">
+                        <h3>Tópicos</h3>
+                        <div class="button-group">
+                            <button type="button" class="filter-button active" data-topic="all">Todos</button>
+                            <button type="button" class="filter-button" data-topic="stocks">Ações</button>
+                            <button type="button" class="filter-button" data-topic="crypto">Criptomoedas</button>
+                            <button type="button" class="filter-button" data-topic="reits">Fundos Imobiliários</button>
+                            <button type="button" class="filter-button" data-topic="fixed-income">Renda Fixa</button>
+                            <button type="button" class="filter-button" data-topic="etfs">ETFs</button>
+                            <button type="button" class="filter-button" data-topic="gold">Ouro</button>
+                            <button type="button" class="filter-button" data-topic="economy">Economia</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Notícias em Destaque -->
+            <section class="card featured-news-card">
+                <h2>Notícias em Destaque</h2>
+                <div class="featured-news-container" id="featured-news">
+                    <!-- Conteúdo será preenchido via JavaScript -->
+                    <div class="loading-indicator">Carregando notícias em destaque...</div>
+                </div>
+            </section>
+
+            <!-- Feeds de Notícias -->
+            <section class="card news-feeds-card">
+                <h2>Feeds de Notícias</h2>
+                <div class="news-tabs">
+                    <button type="button" class="tab-button active" data-tab="infomoney">InfoMoney</button>
+                    <button type="button" class="tab-button" data-tab="bbc">BBC</button>
+                    <button type="button" class="tab-button" data-tab="forbes">Forbes</button>
+                    <button type="button" class="tab-button" data-tab="g1">G1</button>
+                    <button type="button" class="tab-button" data-tab="investing">Investing.com</button>
+                </div>
+                <div class="news-content">
+                    <div class="tab-content active" id="infomoney-news">
+                        <div class="news-feed" id="infomoney-feed">
+                            <!-- Conteúdo será preenchido via JavaScript -->
+                            <div class="loading-indicator">Carregando notícias do InfoMoney...</div>
+                        </div>
+                    </div>
+                    <div class="tab-content" id="bbc-news">
+                        <div class="news-feed" id="bbc-feed">
+                            <!-- Conteúdo será preenchido via JavaScript -->
+                            <div class="loading-indicator">Carregando notícias da BBC...</div>
+                        </div>
+                    </div>
+                    <div class="tab-content" id="forbes-news">
+                        <div class="news-feed" id="forbes-feed">
+                            <!-- Conteúdo será preenchido via JavaScript -->
+                            <div class="loading-indicator">Carregando notícias da Forbes...</div>
+                        </div>
+                    </div>
+                    <div class="tab-content" id="g1-news">
+                        <div class="news-feed" id="g1-feed">
+                            <!-- Conteúdo será preenchido via JavaScript -->
+                            <div class="loading-indicator">Carregando notícias do G1...</div>
+                        </div>
+                    </div>
+                    <div class="tab-content" id="investing-news">
+                        <div class="news-feed" id="investing-feed">
+                            <!-- Conteúdo será preenchido via JavaScript -->
+                            <div class="loading-indicator">Carregando notícias do Investing.com...</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Análise de Sentimento -->
+            <section class="card sentiment-card">
+                <h2>Análise de Sentimento do Mercado <span class="info-icon tooltip">ℹ️
+                    <span class="tooltip-text">
+                        <strong>O que é Análise de Sentimento?</strong><br>
+                        A análise de sentimento avalia o tom emocional das notícias financeiras para determinar se são positivas, negativas ou neutras.<br><br>
+
+                        <strong>Como interpretar:</strong><br>
+                        - <span class="positive">Positivo</span>: Indica otimismo no mercado<br>
+                        - <span class="negative">Negativo</span>: Indica pessimismo no mercado<br>
+                        - <span class="neutral">Neutro</span>: Indica equilíbrio ou incerteza<br><br>
+
+                        O gráfico mostra a distribuição percentual dos sentimentos, enquanto a análise por tópico permite identificar tendências em segmentos específicos do mercado.
+                    </span>
+                </span></h2>
+                <div class="sentiment-container">
+                    <div class="sentiment-chart-container">
+                        <canvas id="sentiment-chart"></canvas>
+                    </div>
+                    <div class="sentiment-topics" id="sentiment-topics">
+                        <!-- Conteúdo será preenchido via JavaScript -->
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>Dashboard criado com dados de múltiplas APIs financeiras | © 2025</p>
+            <p>Atualização em tempo real ativada</p>
+        </footer>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Configurações</h2>
+                <button type="button" class="close-button" id="close-settings">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h3>Aparência</h3>
+                    <div class="setting-item">
+                        <label for="theme-select">Tema</label>
+                        <select id="theme-select">
+                            <option value="light">Claro</option>
+                            <option value="dark">Escuro</option>
+                            <option value="system">Sistema</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>Dados</h3>
+                    <div class="setting-item">
+                        <label for="refresh-interval">Intervalo de atualização</label>
+                        <select id="refresh-interval">
+                            <option value="30">30 segundos</option>
+                            <option value="60">1 minuto</option>
+                            <option value="300">5 minutos</option>
+                            <option value="600">10 minutos</option>
+                            <option value="1800">30 minutos</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="cache-duration">Duração do cache</label>
+                        <select id="cache-duration">
+                            <option value="300">5 minutos</option>
+                            <option value="600">10 minutos</option>
+                            <option value="1800">30 minutos</option>
+                            <option value="3600">1 hora</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>Preferências</h3>
+                    <div class="setting-item checkbox-item">
+                        <input type="checkbox" id="show-notifications" checked>
+                        <label for="show-notifications">Mostrar notificações</label>
+                    </div>
+                    <div class="setting-item checkbox-item">
+                        <input type="checkbox" id="auto-refresh" checked>
+                        <label for="auto-refresh">Atualização automática</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" id="reset-settings">Restaurar padrões</button>
+                <button type="button" class="btn btn-primary" id="save-settings">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/cache-manager.js"></script>
+    <script src="js/api-manager.js"></script>
+    <script src="js/user-preferences.js"></script>
+    <script src="js/auth-manager.js"></script>
+    <script src="js/data-loader.js"></script>
+
+    <!-- Novos módulos de dados -->
+    <script src="js/crypto-loader.js"></script>
+    <script src="js/economic-loader.js"></script>
+    <script src="js/stock-loader.js"></script>
+
+    <script src="js/charts.js"></script>
+    <script src="js/news.js"></script>
+    <script src="js/realtime-updater.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/settings.js"></script>
+</body>
+</html>
