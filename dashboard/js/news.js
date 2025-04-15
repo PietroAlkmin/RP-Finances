@@ -81,9 +81,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Quando os dados forem carregados
 document.addEventListener('newsDataLoaded', function() {
+    console.log('Evento newsDataLoaded recebido, dados:', window.newsData);
     renderFeaturedNews();
     renderNewsFeeds();
     renderSentimentAnalysis();
+});
+
+// Adicionar um listener para o evento DOMContentLoaded para garantir que o evento newsDataLoaded seja capturado
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar se os dados já foram carregados
+    if (window.newsData && window.newsData.dataLoaded) {
+        console.log('Dados já carregados no DOMContentLoaded, renderizando...');
+        renderFeaturedNews();
+        renderNewsFeeds();
+        renderSentimentAnalysis();
+    }
 });
 
 /**
@@ -181,6 +193,8 @@ function updateCurrentDate() {
  * Renderiza as notícias em destaque
  */
 function renderFeaturedNews() {
+    console.log('Renderizando notícias em destaque...', window.newsData);
+
     if (!window.newsData.financial || !window.newsData.dataLoaded) {
         console.warn('Dados de notícias não disponíveis para renderização das notícias em destaque');
 
@@ -192,8 +206,20 @@ function renderFeaturedNews() {
                     <div class="empty-icon">📰</div>
                     <h3>Sem notícias disponíveis</h3>
                     <p>Não foi possível carregar as notícias em destaque.</p>
+                    <button id="retry-featured-news" class="btn btn-primary">Tentar Novamente</button>
                 </div>
             `;
+
+            // Adicionar evento para tentar novamente
+            const retryButton = document.getElementById('retry-featured-news');
+            if (retryButton) {
+                retryButton.addEventListener('click', function() {
+                    // Limpar cache de notícias
+                    CacheManager.clearCacheByType('news');
+                    // Recarregar dados
+                    window.loadNewsData(window.newsData.filters.source, window.newsData.filters.language, window.newsData.filters.topic);
+                });
+            }
         }
         return;
     }
@@ -244,6 +270,8 @@ function renderFeaturedNews() {
  * Renderiza os feeds de notícias
  */
 function renderNewsFeeds() {
+    console.log('Renderizando feeds de notícias...', window.newsData);
+
     if (!window.newsData.financial || !window.newsData.dataLoaded) {
         console.warn('Dados de notícias não disponíveis para renderização dos feeds');
 
@@ -255,9 +283,21 @@ function renderNewsFeeds() {
                     <div class="empty-icon">📰</div>
                     <h3>Sem notícias disponíveis</h3>
                     <p>Não foi possível carregar as notícias para este feed.</p>
+                    <button class="retry-news-feed btn btn-primary">Tentar Novamente</button>
                 </div>
             `;
         });
+
+        // Adicionar evento para tentar novamente em todos os botões
+        document.querySelectorAll('.retry-news-feed').forEach(button => {
+            button.addEventListener('click', function() {
+                // Limpar cache de notícias
+                CacheManager.clearCacheByType('news');
+                // Recarregar dados
+                window.loadNewsData(window.newsData.filters.source, window.newsData.filters.language, window.newsData.filters.topic);
+            });
+        });
+
         return;
     }
 
@@ -462,6 +502,31 @@ function renderSentimentChart() {
     const ctx = document.getElementById('sentiment-chart').getContext('2d');
     const sentiment = window.newsData.sentiment;
 
+    // Verificar se temos dados de percentagens
+    if (!sentiment || !sentiment.percentages) {
+        // Calcular percentagens a partir das contagens
+        const total = sentiment ? (sentiment.counts.positive + sentiment.counts.neutral + sentiment.counts.negative) : 0;
+        const percentages = {
+            positive: total > 0 ? parseFloat(((sentiment?.counts.positive || 0) / total * 100).toFixed(1)) : 33.3,
+            neutral: total > 0 ? parseFloat(((sentiment?.counts.neutral || 0) / total * 100).toFixed(1)) : 33.3,
+            negative: total > 0 ? parseFloat(((sentiment?.counts.negative || 0) / total * 100).toFixed(1)) : 33.3
+        };
+
+        // Se sentiment não existir, criar um objeto vazio
+        if (!sentiment) {
+            window.newsData.sentiment = {
+                counts: { positive: 0, neutral: 0, negative: 0 },
+                percentages: percentages,
+                byTopic: {},
+                overall: 'neutral'
+            };
+            sentiment = window.newsData.sentiment;
+        } else {
+            // Adicionar percentagens ao objeto sentiment existente
+            sentiment.percentages = percentages;
+        }
+    }
+
     // Dados para o gráfico
     const data = [
         sentiment.percentages.positive,
@@ -517,6 +582,28 @@ function renderSentimentChart() {
 function renderSentimentTopics() {
     const topicsContainer = document.getElementById('sentiment-topics');
     const sentiment = window.newsData.sentiment;
+
+    // Verificar se temos dados de tópicos
+    if (!sentiment || !sentiment.byTopic || Object.keys(sentiment.byTopic).length === 0) {
+        // Criar dados de tópicos simulados
+        if (!sentiment) {
+            window.newsData.sentiment = {
+                counts: { positive: 0, neutral: 0, negative: 0 },
+                percentages: { positive: 33.3, neutral: 33.3, negative: 33.3 },
+                byTopic: {
+                    'stocks': { positive: 1, neutral: 1, negative: 1, total: 3 },
+                    'economy': { positive: 1, neutral: 1, negative: 1, total: 3 }
+                },
+                overall: 'neutral'
+            };
+            sentiment = window.newsData.sentiment;
+        } else if (!sentiment.byTopic) {
+            sentiment.byTopic = {
+                'stocks': { positive: 1, neutral: 1, negative: 1, total: 3 },
+                'economy': { positive: 1, neutral: 1, negative: 1, total: 3 }
+            };
+        }
+    }
 
     let topicsHTML = `
         <div class="sentiment-overall">

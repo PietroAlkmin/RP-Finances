@@ -28,6 +28,15 @@
     --negative-color: #ef4444;
     --neutral-color: #3b82f6;
 
+    /* Cores de tipos de ativos */
+    --stocks-color: #3b82f6;
+    --brazilian-color: #22c55e;
+    --crypto-color: #f59e0b;
+    --reits-color: #8b5cf6;
+    --etfs-color: #ec4899;
+    --fixed-income-color: #6b7280;
+    --gold-color: #eab308;
+
     /* Espaçamento */
     --spacing-xs: 0.25rem;
     --spacing-sm: 0.5rem;
@@ -233,10 +242,13 @@ a:hover {
 table {
     width: 100%;
     border-collapse: collapse;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+    border-radius: var(--border-radius);
+    overflow: hidden;
 }
 
 th, td {
-    padding: var(--spacing-sm) var(--spacing-md);
+    padding: var(--spacing-md) var(--spacing-md);
     text-align: left;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
@@ -245,6 +257,9 @@ th {
     font-weight: 600;
     color: var(--text-light);
     font-size: 0.875rem;
+    background-color: rgba(0, 0, 0, 0.02);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 td {
@@ -252,6 +267,10 @@ td {
 }
 
 tr:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+tr:nth-child(even) {
     background-color: rgba(0, 0, 0, 0.01);
 }
 
@@ -262,6 +281,12 @@ tr:hover {
 .index-symbol, .asset-symbol, .stock-symbol {
     font-size: 0.75rem;
     color: var(--text-light);
+}
+
+.asset-symbol-main {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-dark);
 }
 
 /* Gráficos */
@@ -538,6 +563,9 @@ tr:hover {
     border-radius: var(--border-radius);
     font-size: 0.75rem;
     background-color: rgba(0, 0, 0, 0.05);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .asset-type-badge.stocks {

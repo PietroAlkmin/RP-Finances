@@ -555,21 +555,59 @@ async function loadNewsData(source = 'all', language = 'all', topic = 'all') {
     try {
         console.log(`Carregando dados de notícias (fonte: ${source}, idioma: ${language}, tópico: ${topic})...`);
 
+        // Limpar cache de notícias para forçar nova chamada à API
+        CacheManager.clearCacheByType('news');
+        console.log('Cache de notícias limpo');
+
         // Verificar se devemos usar dados simulados diretamente
         // Isso evita erros de API desnecessários
-        const useSimulatedData = true; // Forçar uso de dados simulados para evitar erros de API
+        const useSimulatedData = false; // Tentar usar a API real primeiro
 
         let generalNews, financialNews;
 
-        if (useSimulatedData) {
-            // Usar diretamente dados simulados
+        try {
+            if (useSimulatedData) {
+                // Usar diretamente dados simulados
+                generalNews = simulateGeneralNews();
+                // Criar dados financeiros a partir dos dados gerais
+                financialNews = generalNews.map(news => ({
+                    ...news,
+                    impactScore: parseFloat((Math.random() * 10).toFixed(1)),
+                    relevanceScore: parseFloat((Math.random() * 10).toFixed(1)),
+                    marketReaction: Math.random() > 0.5 ? 'positive' : 'negative'
+                }));
+                console.log('Usando dados simulados para notícias');
+            } else {
+                // Tentar obter dados reais das APIs
+                console.log('Tentando obter dados reais das APIs...');
+                generalNews = await fetchGeneralNews(source, language, topic);
+                financialNews = await fetchFinancialNews(source, language, topic);
+                console.log('Dados reais obtidos com sucesso');
+            }
+        } catch (apiError) {
+            console.error('Erro ao obter dados das APIs:', apiError);
+            console.log('Usando dados simulados como fallback após erro na API');
+
+            // Usar dados simulados como fallback
             generalNews = simulateGeneralNews();
-            financialNews = simulateFinancialNews();
-            console.log('Usando dados simulados para notícias');
-        } else {
-            // Tentar obter dados reais das APIs
-            generalNews = await fetchGeneralNews(source, language, topic);
-            financialNews = await fetchFinancialNews(source, language, topic);
+            financialNews = generalNews.map(news => ({
+                ...news,
+                impactScore: parseFloat((Math.random() * 10).toFixed(1)),
+                relevanceScore: parseFloat((Math.random() * 10).toFixed(1)),
+                marketReaction: Math.random() > 0.5 ? 'positive' : 'negative'
+            }));
+        }
+
+        // Verificar se financialNews é um array válido
+        if (!financialNews || !Array.isArray(financialNews) || financialNews.length === 0) {
+            console.warn('Dados de notícias financeiras inválidos ou vazios');
+            // Criar dados simulados
+            financialNews = simulateGeneralNews().map(news => ({
+                ...news,
+                impactScore: parseFloat((Math.random() * 10).toFixed(1)),
+                relevanceScore: parseFloat((Math.random() * 10).toFixed(1)),
+                marketReaction: Math.random() > 0.5 ? 'positive' : 'negative'
+            }));
         }
 
         // Processar análise de sentimento
@@ -1291,8 +1329,9 @@ async function fetchGeneralNews(source, language, topic) {
         try {
             // Construir parâmetros para a API de notícias
             const params = {
-                category: 'business',
-                country: 'us' // Obter notícias dos EUA por padrão
+                topic: 'business',
+                lang: language !== 'all' ? language : 'en',
+                country: 'us,br' // Obter notícias dos EUA e Brasil
             };
 
             // Obter URL e nome da API usando o gerenciador de APIs
@@ -1303,14 +1342,7 @@ async function fetchGeneralNews(source, language, topic) {
             console.log(`Usando API de notícias: ${apiName}`);
             console.log(`Chamadas restantes hoje: ${CONFIG.apiRotation.dailyLimits[apiName] - (CONFIG.apiRotation.callCount[apiName] || 0)}`);
 
-            // Verificar se estamos usando a API financialModelingPrep para notícias
-            if (apiName === 'financialModelingPrep') {
-                // Ajustar URL para o endpoint de notícias do FMP
-                // Nota: Esta é uma adaptação para usar FMP como fonte alternativa de notícias
-                const fmpUrl = url.replace('top-headlines', 'stock_news');
-                console.log('Ajustando URL para FMP:', fmpUrl);
-                return await fetchFinancialModelingPrepNews(fmpUrl, source, language, topic);
-            }
+            // Removido código para Financial Modeling Prep API
 
             // Verificar se estamos solicitando InfoMoney ou Investing.com
             if (source === 'infomoney' || source === 'investing') {
@@ -1319,31 +1351,65 @@ async function fetchGeneralNews(source, language, topic) {
                 return simulateGeneralNews(source, language, topic);
             }
 
-            // Adicionar filtros se necessário
-            if (source !== 'all' && CONFIG.newsSources[source]) {
-                url += `&sources=${CONFIG.newsSources[source].name.toLowerCase()}`;
-            }
+            // Para GNews API, precisamos ajustar os parâmetros
+            let apiUrl = url; // Criar uma cópia da URL original
 
-            if (language !== 'all') {
-                url += `&language=${language}`;
+            if (apiName === 'gnews') {
+                // Criar uma nova URL com os parâmetros corretos para GNews
+                apiUrl = `${CONFIG.apiEndpoints.gnews}/top-headlines?`;
+
+                // Adicionar parâmetros obrigatórios
+                apiUrl += `apikey=${CONFIG.apiKeys.gnews}`;
+                apiUrl += `&topic=business`; // Sempre usar business como tópico
+
+                // Adicionar idioma se especificado
+                if (language !== 'all') {
+                    apiUrl += `&lang=${language}`;
+                } else {
+                    apiUrl += `&lang=en`; // Padrão em inglês
+                }
+
+                // Adicionar países (sempre incluir EUA e Brasil)
+                apiUrl += `&country=us,br`;
+
+                // Adicionar número máximo de notícias
+                apiUrl += `&max=${CONFIG.display.maxNewsItems || 10}`;
+
+                console.log('URL da GNews API ajustada:', apiUrl);
             }
 
             // Fazer a chamada à API
-            console.log('Chamando News API com URL:', url);
-            console.log('Usando News API key:', CONFIG.apiKeys.newsApi);
-            const response = await fetch(url);
-
-            if (!response.ok) {
-                console.error(`Erro na API de notícias: ${response.status}`);
-                throw new Error(`Erro na API de notícias: ${response.status}`);
+            console.log('Chamando API com URL:', apiUrl);
+            if (apiName === 'gnews') {
+                console.log('Usando GNews API key:', CONFIG.apiKeys.gnews);
             }
 
-            console.log('Resposta recebida da News API');
+            let response;
+            try {
+                response = await fetch(apiUrl);
+                console.log('Resposta da API recebida, status:', response.status);
+
+                if (!response.ok) {
+                    console.error(`Erro na API de notícias: ${response.status}`);
+                    throw new Error(`Erro na API de notícias: ${response.status}`);
+                }
+
+                console.log('Resposta recebida da GNews API com sucesso');
+            } catch (fetchError) {
+                console.error('Erro ao fazer fetch da API:', fetchError);
+                throw fetchError;
+            }
 
             const data = await response.json();
 
             // Processar resultados da API
             console.log('Processando dados da API:', data);
+
+            // Verificar se a resposta contém artigos válidos
+            if (!data.articles || !Array.isArray(data.articles) || data.articles.length === 0) {
+                console.warn('Resposta da API não contém artigos válidos:', data);
+                throw new Error('Resposta da API não contém artigos válidos');
+            }
 
             const newsItems = data.articles.map(article => {
                 console.log('Processando artigo:', article);
@@ -1498,7 +1564,7 @@ async function fetchGeneralNews(source, language, topic) {
 
             // Verificar se é um erro de limite de API
             if (apiError.message && apiError.message.includes('429')) {
-                console.warn('Limite de API excedido para News API. Usando dados simulados.');
+                console.warn('Limite de API excedido para GNews API. Usando dados simulados.');
                 // Mostrar mensagem de erro no UI
                 const errorMessage = document.getElementById('error-message');
                 if (errorMessage) errorMessage.classList.remove('hidden');
@@ -1512,130 +1578,7 @@ async function fetchGeneralNews(source, language, topic) {
     }
 }
 
-/**
- * Obtém notícias da API Financial Modeling Prep
- * @param {string} url - URL da API
- * @param {string} source - Fonte das notícias
- * @param {string} language - Idioma das notícias
- * @param {string} topic - Tópico das notícias
- * @returns {Promise<Array>} - Lista de notícias
- */
-async function fetchFinancialModelingPrepNews(url, source, language, topic) {
-    try {
-        console.log('Obtendo notícias da Financial Modeling Prep API...');
-
-        const response = await fetch(url);
-
-        if (!response.ok) {
-            throw new Error(`Erro na API Financial Modeling Prep: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log('Dados recebidos da Financial Modeling Prep:', data);
-
-        // Converter o formato da FMP para o formato usado pelo dashboard
-        const newsItems = data.map(article => {
-            // Determinar fonte
-            let newsSource = 'financialModelingPrep';
-
-            // Determinar idioma (assumir inglês para FMP)
-            const newsLanguage = 'en';
-
-            // Determinar tópicos
-            const newsTopics = [];
-            const fullText = (article.title + ' ' + (article.text || '')).toLowerCase();
-
-            // Palavras-chave para cada tópico
-            const topicKeywords = {
-                stocks: ['stock', 'stocks', 'equity', 'market', 'nasdaq', 'dow jones', 's&p', 'nyse'],
-                crypto: ['crypto', 'bitcoin', 'ethereum', 'btc', 'eth', 'blockchain', 'token'],
-                gold: ['gold', 'precious metal', 'bullion'],
-                economy: ['economy', 'economic', 'gdp', 'inflation', 'interest rate', 'fed', 'central bank'],
-                reits: ['reit', 'real estate', 'property'],
-                'fixed-income': ['bond', 'treasury', 'fixed income', 'yield'],
-                etfs: ['etf', 'exchange traded fund', 'index fund'],
-                commodities: ['commodity', 'commodities', 'oil', 'gas', 'agricultural']
-            };
-
-            // Verificar o texto para identificar tópicos
-            for (const [topic, keywords] of Object.entries(topicKeywords)) {
-                if (keywords.some(keyword => fullText.includes(keyword))) {
-                    newsTopics.push(topic);
-                }
-            }
-
-            // Adicionar 'economy' como tópico padrão se nenhum outro for encontrado
-            if (newsTopics.length === 0) {
-                newsTopics.push('economy');
-            }
-
-            // Análise de sentimento
-            let sentiment = 'neutral';
-            let positiveCount = 0;
-            let negativeCount = 0;
-
-            // Palavras positivas e negativas
-            const positiveWords = [
-                'rise', 'gain', 'surge', 'jump', 'high', 'record', 'growth', 'boost', 'improve', 'recovery', 'positive', 'bullish', 'rally'
-            ];
-
-            const negativeWords = [
-                'fall', 'drop', 'decline', 'plunge', 'low', 'loss', 'crash', 'bearish', 'negative', 'concern', 'worry', 'fear', 'risk', 'crisis'
-            ];
-
-            // Contar ocorrências
-            positiveWords.forEach(word => {
-                const regex = new RegExp(`\\b${word}\\b`, 'gi');
-                const matches = fullText.match(regex);
-                if (matches) positiveCount += matches.length;
-            });
-
-            negativeWords.forEach(word => {
-                const regex = new RegExp(`\\b${word}\\b`, 'gi');
-                const matches = fullText.match(regex);
-                if (matches) negativeCount += matches.length;
-            });
-
-            // Determinar sentimento
-            if (positiveCount > negativeCount + 1) {
-                sentiment = 'positive';
-            } else if (negativeCount > positiveCount + 1) {
-                sentiment = 'negative';
-            }
-
-            // Criar objeto de notícia no formato padrão
-            return {
-                source: newsSource,
-                language: newsLanguage,
-                title: article.title,
-                description: article.text || 'Sem descrição disponível',
-                url: article.url,
-                publishedAt: article.publishedDate,
-                author: article.site || 'Financial Modeling Prep',
-                content: article.text || '',
-                urlToImage: article.image || '',
-                originalSource: article.site || 'Financial Modeling Prep',
-                sourceName: article.site || 'Financial Modeling Prep',
-                topics: newsTopics,
-                sentiment: sentiment,
-                positiveScore: positiveCount,
-                negativeScore: negativeCount,
-                sentimentScore: positiveCount - negativeCount,
-                impactScore: Math.floor(Math.random() * 10) + 1,
-                marketReaction: Math.random() > 0.5 ? 'positive' : 'negative'
-            };
-        });
-
-        // Salvar no cache
-        const cacheKey = `news_${source}_${language}_${topic}`;
-        CacheManager.saveToCache(cacheKey, newsItems, CONFIG.cache.ttl.news);
-
-        return newsItems;
-    } catch (error) {
-        console.error('Erro ao obter notícias da Financial Modeling Prep:', error);
-        return simulateGeneralNews(source, language, topic);
-    }
-}
+// Função fetchFinancialModelingPrepNews removida - usando apenas GNews API
 
 /**
  * Função de fallback para gerar notícias simuladas
@@ -1787,6 +1730,21 @@ function simulateGeneralNews(source, language, topic) {
 
     // Ordenar por data de publicação (mais recentes primeiro)
     filteredNews.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+
+    // Adicionar campos adicionais necessários para cada notícia
+    filteredNews = filteredNews.map(news => ({
+        ...news,
+        // Adicionar campos que podem estar faltando
+        author: news.author || 'Autor desconhecido',
+        content: news.content || news.description,
+        urlToImage: news.urlToImage || '',
+        originalSource: news.originalSource || news.source,
+        sourceName: news.sourceName || (CONFIG.newsSources[news.source] ? CONFIG.newsSources[news.source].name : news.source),
+        // Adicionar campos de análise se não existirem
+        positiveScore: news.positiveScore || Math.floor(Math.random() * 5),
+        negativeScore: news.negativeScore || Math.floor(Math.random() * 5),
+        sentimentScore: news.sentimentScore || (news.sentiment === 'positive' ? 2 : news.sentiment === 'negative' ? -2 : 0)
+    }));
 
     return filteredNews;
 }

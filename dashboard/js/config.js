@@ -10,10 +10,11 @@ const CONFIG = {
         enabled: true,  // Ativar/desativar rotação
 
         // Grupos de APIs por tipo de dados
-        stockMarketApis: ['alphaVantage', 'yahooFinance', 'financialModelingPrep', 'polygon'],
-        newsApis: ['newsApi', 'financialModelingPrep'],
-        cryptoApis: ['coinGecko', 'alphaVantage'],
-        economicApis: ['fred', 'alphaVantage'],
+        stockMarketApis: ['alphaVantage', 'yahooFinance', 'financialModelingPrep', 'polygon', 'finnhub', 'brapi'],
+        newsApis: ['gnews'],
+        cryptoApis: ['coinGecko', 'alphaVantage', 'brapi'],
+        economicApis: ['fred', 'alphaVantage', 'finnhub'],
+        brazilianStockApis: ['brapi', 'yahooFinance'],
 
         // Índice atual para cada tipo de API (será incrementado automaticamente)
         currentIndex: {
@@ -34,7 +35,10 @@ const CONFIG = {
             financialModelingPrep: 250,
             polygon: 5,
             coinGecko: 50,
-            fred: 100
+            fred: 100,
+            finnhub: 60,  // 60 chamadas por minuto no plano gratuito
+            brapi: 200,   // Limite estimado para o plano PRO
+            gnews: 100    // Limite estimado para o plano gratuito
         },
 
         // Última data de reset dos contadores
@@ -45,13 +49,15 @@ const CONFIG = {
     apiKeys: {
         // APIs existentes
         alphaVantage: 'PQNAG49IHI7ID3Y6', // Sua chave da Alpha Vantage
-        newsApi: '611c5757a6014311912d7e2063ee524c', // Sua chave da NewsAPI
 
-        // Novas APIs
-        finnhub: 'sandbox_c82i8iaad3ie5161hgig', // Chave sandbox do Finnhub
+        // Novas APIs com chaves atualizadas
+        finnhub: 'cvu3b51r01qjg1379ukgcvu3b51r01qjg1379ul0', // Chave premium do Finnhub
         coinGecko: '', // CoinGecko não requer chave para endpoints básicos
         financialModelingPrep: 'demo', // Chave demo para Financial Modeling Prep
         polygon: 'DEMO_KEY', // Chave demo para Polygon.io
+        brapi: '5gqN7YFNFzWD28VXADXHNV', // Chave PRO para brapi.dev (ações brasileiras)
+        fred: '79d701bccfad503602710ec931fc09b9', // Chave para FRED API
+        gnews: '4e4869808f12183074b165f43ef3de7f', // Chave para GNews API
     },
 
     // Endpoints de API
@@ -64,7 +70,9 @@ const CONFIG = {
         coinGecko: 'https://api.coingecko.com/api/v3',
         financialModelingPrep: 'https://financialmodelingprep.com/api/v3',
         polygon: 'https://api.polygon.io/v2',
-        fred: 'https://api.stlouisfed.org/fred',
+        fred: 'https://api.stlouisfed.org/fred/series',
+        brapi: 'https://brapi.dev/api',
+        gnews: 'https://gnews.io/api/v4',
 
         // Endpoints via proxy (recomendado para desenvolvimento)
         proxyAlphaVantage: 'http://localhost:3000/api/alpha-vantage',
@@ -75,6 +83,8 @@ const CONFIG = {
         proxyFinancialModelingPrep: 'http://localhost:3000/api/fmp',
         proxyPolygon: 'http://localhost:3000/api/polygon',
         proxyFred: 'http://localhost:3000/api/fred',
+        proxyBrapi: 'http://localhost:3000/api/brapi',
+        proxyGnews: 'http://localhost:3000/api/gnews',
 
         // Configuração para usar proxy ou não
         useProxy: true
