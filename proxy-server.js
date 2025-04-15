@@ -21,6 +21,21 @@ app.use(bodyParser.json());
 // Servir arquivos estáticos da pasta dashboard
 app.use(express.static(path.join(__dirname, 'dashboard')));
 
+// Rota para redirecionar páginas principais para a pasta dashboard
+app.get('/:page.html', (req, res) => {
+    const { page } = req.params;
+    // Lista de páginas válidas
+    const validPages = ['index', 'news', 'best-assets', 'portfolio', 'api-test'];
+
+    if (validPages.includes(page)) {
+        console.log(`Redirecionando /${page}.html para /dashboard/${page}.html`);
+        res.redirect(`/dashboard/${page}.html`);
+    } else {
+        // Se não for uma página válida, continuar para o próximo middleware
+        res.status(404).send('Página não encontrada');
+    }
+});
+
 // Rota para proxy da API do Yahoo Finance
 app.get('/api/yahoo-finance/:endpoint(*)', async (req, res) => {
     try {
@@ -86,35 +101,7 @@ app.get('/api/alpha-vantage', async (req, res) => {
     }
 });
 
-// Rota para proxy da API de notícias
-app.get('/api/news', async (req, res) => {
-    try {
-        const queryParams = req.query;
-
-        // Verificar se a chave de API está presente ou usar a chave padrão
-        if (!queryParams.apiKey) {
-            queryParams.apiKey = '611c5757a6014311912d7e2063ee524c'; // Usar sua chave da News API
-        }
-
-        // Construir URL para a API de notícias
-        const url = 'https://newsapi.org/v2/top-headlines';
-
-        console.log(`Proxy request to News API: ${url}`);
-        console.log('Query params:', queryParams);
-
-        // Fazer a chamada à API
-        const response = await axios.get(url, { params: queryParams });
-
-        // Retornar os dados para o cliente
-        res.json(response.data);
-    } catch (error) {
-        console.error('Error proxying News API request:', error.message);
-        res.status(500).json({
-            error: 'Failed to fetch data from News API',
-            details: error.message
-        });
-    }
-});
+// Rota para proxy da API de notícias removida - usando apenas GNews
 
 // Rota para proxy da API CoinGecko (desativada - retorna dados simulados)
 app.get('/api/coingecko/:endpoint(*)', async (req, res) => {
@@ -202,14 +189,22 @@ app.get('/api/alpha-vantage/:endpoint(*)', async (req, res) => {
 });
 
 // Rota para proxy da API Financial Modeling Prep
+// Nota: Esta API não é mais usada para notícias, apenas para dados financeiros
 app.get('/api/fmp/:endpoint(*)', async (req, res) => {
     try {
         const { endpoint } = req.params;
         const queryParams = req.query;
 
+        // Adicionar a chave de API se não estiver presente
+        if (!queryParams.apikey) {
+            queryParams.apikey = 'demo'; // Usar a chave demo para testes
+            // Nota: Para uso em produção, é necessário obter uma chave válida em https://financialmodelingprep.com/
+        }
+
         // Construir URL para a API Financial Modeling Prep
         const url = `https://financialmodelingprep.com/api/v3/${endpoint}`;
         console.log(`Proxying Financial Modeling Prep API request to: ${url}`);
+        console.log('Query params:', queryParams);
 
         // Fazer a chamada à API
         const response = await axios.get(url, { params: queryParams });
@@ -230,6 +225,11 @@ app.get('/api/finnhub/:endpoint(*)', async (req, res) => {
     try {
         const { endpoint } = req.params;
         const queryParams = req.query;
+
+        // Adicionar a chave de API se não estiver presente
+        if (!queryParams.token) {
+            queryParams.token = 'cvu3b51r01qjg1379ukgcvu3b51r01qjg1379ul0'; // Chave premium do Finnhub
+        }
 
         // Construir URL para a API Finnhub
         const url = `https://finnhub.io/api/v1/${endpoint}`;
@@ -859,6 +859,188 @@ app.delete('/api/pluggy/items/:itemId', async (req, res) => {
             message: 'Item disconnected successfully (with errors)',
             isMock: true,
             error: error.message
+        });
+    }
+});
+
+// Rota para proxy da API brapi.dev (ações brasileiras)
+app.get('/api/brapi/:endpoint(*)', async (req, res) => {
+    try {
+        const { endpoint } = req.params;
+        const queryParams = req.query;
+
+        // Adicionar a chave de API se não estiver presente
+        if (!queryParams.token) {
+            queryParams.token = '5gqN7YFNFzWD28VXADXHNV'; // Chave PRO para brapi.dev
+        }
+
+        // Construir URL para a API brapi.dev
+        const url = `https://brapi.dev/api/${endpoint}`;
+        console.log(`Proxying brapi.dev API request to: ${url}`);
+
+        // Fazer a chamada à API
+        const response = await axios.get(url, { params: queryParams });
+
+        // Retornar os dados para o cliente
+        res.json(response.data);
+    } catch (error) {
+        console.error('Error proxying brapi.dev API request:', error.message);
+        res.status(error.response?.status || 500).json({
+            error: 'Failed to fetch data from brapi.dev API',
+            details: error.message
+        });
+    }
+});
+
+// Rota para proxy da API FRED (Federal Reserve Economic Data)
+app.get('/api/fred/:endpoint(*)', async (req, res) => {
+    try {
+        const { endpoint } = req.params;
+        const queryParams = req.query;
+
+        // Adicionar a chave de API se não estiver presente
+        if (!queryParams.api_key) {
+            queryParams.api_key = '79d701bccfad503602710ec931fc09b9'; // Chave para FRED API
+        }
+
+        // Adicionar formato JSON se não estiver presente
+        if (!queryParams.file_type) {
+            queryParams.file_type = 'json';
+        }
+
+        // Construir URL para a API FRED
+        const url = `https://api.stlouisfed.org/fred/${endpoint}`;
+        console.log(`Proxying FRED API request to: ${url}`);
+
+        // Fazer a chamada à API
+        const response = await axios.get(url, { params: queryParams });
+
+        // Retornar os dados para o cliente
+        res.json(response.data);
+    } catch (error) {
+        console.error('Error proxying FRED API request:', error.message);
+        res.status(error.response?.status || 500).json({
+            error: 'Failed to fetch data from FRED API',
+            details: error.message
+        });
+    }
+});
+
+// Rota para proxy da API GNews
+app.get('/api/gnews/:endpoint(*)', async (req, res) => {
+    try {
+        const { endpoint } = req.params;
+        const queryParams = req.query;
+
+        console.log('GNews API request received:', { endpoint, queryParams });
+
+        // Adicionar a chave de API se não estiver presente
+        if (!queryParams.apikey && !queryParams.token) {
+            queryParams.apikey = '4e4869808f12183074b165f43ef3de7f'; // Chave para GNews API
+            console.log('Added GNews API key to request');
+        }
+
+        // Construir URL para a API GNews
+        const url = `https://gnews.io/api/v4/${endpoint}`;
+        console.log(`Proxying GNews API request to: ${url}`);
+        console.log('Query params:', queryParams);
+
+        // Fazer a chamada à API
+        try {
+            console.log('Making request to GNews API...');
+            const response = await axios.get(url, { params: queryParams });
+            console.log('GNews API response received, status:', response.status);
+
+            // Verificar se a resposta contém dados válidos
+            if (response.data && response.data.articles) {
+                console.log(`GNews API returned ${response.data.articles.length} articles`);
+            } else {
+                console.warn('GNews API response does not contain articles:', response.data);
+            }
+
+            // Retornar os dados para o cliente
+            res.json(response.data);
+        } catch (apiError) {
+            console.error('Error calling GNews API:', apiError.message);
+            if (apiError.response) {
+                console.error('Response status:', apiError.response.status);
+                console.error('Response data:', apiError.response.data);
+            }
+            throw apiError;
+        }
+    } catch (error) {
+        console.error('Error proxying GNews API request:', error.message);
+        res.status(error.response?.status || 500).json({
+            error: 'Failed to fetch data from GNews API',
+            details: error.message
+        });
+    }
+});
+
+// Atualizar a rota para proxy da API CoinGecko para usar a API real em vez de dados simulados
+app.get('/api/coingecko/:endpoint(*)', async (req, res) => {
+    try {
+        const { endpoint } = req.params;
+        const queryParams = req.query;
+
+        // Construir URL para a API CoinGecko
+        const url = `https://api.coingecko.com/api/v3/${endpoint}`;
+        console.log(`Proxying CoinGecko API request to: ${url}`);
+
+        // Fazer a chamada à API
+        const response = await axios.get(url, { params: queryParams });
+
+        // Retornar os dados para o cliente
+        res.json(response.data);
+    } catch (error) {
+        console.error('Error proxying CoinGecko API request:', error.message);
+
+        // Se a API retornar erro 429 (Too Many Requests), retornar dados simulados
+        if (error.response && error.response.status === 429) {
+            console.log('CoinGecko API rate limit exceeded - returning simulated data');
+
+            // Retornar dados simulados em vez de chamar a API
+            if (endpoint.includes('coins/markets')) {
+                // Dados simulados para criptomoedas
+                const simulatedData = [
+                    {
+                        id: 'bitcoin',
+                        symbol: 'btc',
+                        name: 'Bitcoin',
+                        image: 'https://assets.coingecko.com/coins/images/1/large/bitcoin.png',
+                        current_price: 63715.17 + (Math.random() * 2000 - 1000),
+                        market_cap: 1248275802934,
+                        market_cap_rank: 1,
+                        total_volume: 25392532591,
+                        price_change_24h: 2215.17,
+                        price_change_percentage_24h: 3.48,
+                        sparkline_in_7d: { price: generateRandomPrices(24, 60000, 65000) }
+                    },
+                    {
+                        id: 'ethereum',
+                        symbol: 'eth',
+                        name: 'Ethereum',
+                        image: 'https://assets.coingecko.com/coins/images/279/large/ethereum.png',
+                        current_price: 3117.08 + (Math.random() * 200 - 100),
+                        market_cap: 374259723649,
+                        market_cap_rank: 2,
+                        total_volume: 15987654321,
+                        price_change_24h: 38.17,
+                        price_change_percentage_24h: 1.23,
+                        sparkline_in_7d: { price: generateRandomPrices(24, 3000, 3200) }
+                    }
+                ];
+
+                return res.json(simulatedData);
+            } else {
+                // Dados genéricos para outras chamadas
+                return res.json({ status: 'success', message: 'Simulated data', data: [] });
+            }
+        }
+
+        res.status(error.response?.status || 500).json({
+            error: 'Failed to fetch data from CoinGecko API',
+            details: error.message
         });
     }
 });

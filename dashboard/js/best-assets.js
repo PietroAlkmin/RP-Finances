@@ -10,7 +10,9 @@ const bestAssetsData = {
     period: CONFIG.display.defaultPeriod,
     assetType: CONFIG.display.defaultAssetType,
     dataLoaded: false,
-    lastUpdate: null
+    lastUpdate: null,
+    displayLimit: 10, // Número inicial de ativos a serem exibidos
+    totalDisplayed: 0  // Contador de ativos exibidos atualmente
 };
 
 // Inicializar a página quando o DOM estiver pronto
@@ -24,6 +26,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Configurar botão de tentar novamente
     setupRetryButton();
 
+    // Configurar botão "Mostrar Mais"
+    setupShowMoreButton();
+
     // Inicializar preferências do usuário
     UserPreferences.init();
 
@@ -34,8 +39,8 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Limpando todo o cache para usar a nova chave de API...');
     CacheManager.clearAllCache();
 
-    // Carregar dados iniciais
-    loadBestAssetsData(bestAssetsData.period, bestAssetsData.assetType);
+    // Carregar dados iniciais usando o carregador aprimorado
+    loadEnhancedBestAssetsData(bestAssetsData.period, bestAssetsData.assetType);
 
     // Configurar eventos de autenticação
     setupAuthEvents();
@@ -66,8 +71,12 @@ function setupFilters() {
             // Atualizar período selecionado
             bestAssetsData.period = this.dataset.period;
 
+            // Resetar o limite de exibição
+            bestAssetsData.displayLimit = 10;
+            bestAssetsData.totalDisplayed = 0;
+
             // Recarregar dados com novo período
-            loadBestAssetsData(bestAssetsData.period, bestAssetsData.assetType);
+            loadEnhancedBestAssetsData(bestAssetsData.period, bestAssetsData.assetType);
         });
     });
 
@@ -84,8 +93,12 @@ function setupFilters() {
             // Atualizar tipo de ativo selecionado
             bestAssetsData.assetType = this.dataset.type;
 
+            // Resetar o limite de exibição
+            bestAssetsData.displayLimit = 10;
+            bestAssetsData.totalDisplayed = 0;
+
             // Recarregar dados com novo tipo
-            loadBestAssetsData(bestAssetsData.period, bestAssetsData.assetType);
+            loadEnhancedBestAssetsData(bestAssetsData.period, bestAssetsData.assetType);
         });
     });
 }
@@ -113,7 +126,7 @@ function setupRetryButton() {
             document.getElementById('loading-indicator').classList.remove('hidden');
 
             // Recarregar dados
-            loadBestAssetsData(bestAssetsData.period, bestAssetsData.assetType);
+            loadEnhancedBestAssetsData(bestAssetsData.period, bestAssetsData.assetType);
         });
     }
 }
@@ -154,6 +167,29 @@ function setupAuthEvents() {
 }
 
 /**
+ * Configura o botão "Mostrar Mais"
+ */
+function setupShowMoreButton() {
+    const showMoreButton = document.getElementById('show-more-button');
+    if (showMoreButton) {
+        showMoreButton.addEventListener('click', function() {
+            // Aumentar o limite de exibição
+            bestAssetsData.displayLimit += 10;
+
+            // Renderizar a tabela novamente com o novo limite
+            renderBestAssetsTable();
+
+            // Verificar se todos os ativos já estão sendo exibidos
+            if (bestAssetsData.totalDisplayed >= bestAssetsData.assets.length) {
+                // Desabilitar o botão se todos os ativos já estiverem sendo exibidos
+                showMoreButton.disabled = true;
+                showMoreButton.textContent = 'Todos os ativos exibidos';
+            }
+        });
+    }
+}
+
+/**
  * Renderiza a tabela de melhores ativos
  */
 function renderBestAssetsTable() {
@@ -163,6 +199,7 @@ function renderBestAssetsTable() {
     }
 
     const tableBody = document.getElementById('best-assets-tbody');
+    const showMoreButton = document.getElementById('show-more-button');
     const assets = bestAssetsData.assets;
     const period = bestAssetsData.period;
 
@@ -171,18 +208,34 @@ function renderBestAssetsTable() {
 
     let tableHTML = '';
 
-    assets.forEach(asset => {
+    // Limitar o número de ativos exibidos
+    const assetsToDisplay = assets.slice(0, bestAssetsData.displayLimit);
+    bestAssetsData.totalDisplayed = assetsToDisplay.length;
+
+    // Atualizar estado do botão "Mostrar Mais"
+    if (showMoreButton) {
+        if (bestAssetsData.totalDisplayed >= assets.length) {
+            showMoreButton.disabled = true;
+            showMoreButton.textContent = 'Todos os ativos exibidos';
+        } else {
+            showMoreButton.disabled = false;
+            showMoreButton.textContent = `Mostrar Mais (${bestAssetsData.totalDisplayed} de ${assets.length})`;
+        }
+    }
+
+    assetsToDisplay.forEach((asset, index) => {
         const assetTypeLabel = getAssetTypeLabel(asset.type);
         const volumeDisplay = asset.volume ? formatLargeNumber(asset.volume) : 'N/A';
 
+        // Adicionar classe para animação apenas para os novos itens
+        const animationClass = index >= bestAssetsData.totalDisplayed - 10 ? 'fade-in' : '';
+
         tableHTML += `
-            <tr>
+            <tr class="asset-row ${animationClass}">
                 <td>
-                    <div class="asset-name">${asset.name}</div>
-                    <div class="asset-symbol">${asset.symbol}</div>
+                    <div class="asset-symbol-main">${asset.symbol}</div>
                 </td>
-                <td><span class="asset-type-badge ${asset.type}">${assetTypeLabel}</span></td>
-                <td>${formatCurrency(asset.last_price)}</td>
+                <td>${formatCurrency(asset.last_price, asset.currency || 'USD', { is_crypto: asset.is_crypto })}</td>
                 <td class="${getValueClass(asset[returnField])}">${formatPercentage(asset[returnField])}</td>
                 <td>${volumeDisplay}</td>
                 <td>${getTrendIcon(asset.trend)} ${asset.trend}</td>
@@ -212,7 +265,7 @@ function renderBestAssetsChart() {
     // Limitar a 10 ativos para melhor visualização
     const topAssets = assets.slice(0, 10);
 
-    const labels = topAssets.map(asset => asset.name);
+    const labels = topAssets.map(asset => asset.symbol);
     const returns = topAssets.map(asset => asset[returnField]);
 
     // Determinar cores com base no valor (positivo/negativo)
@@ -406,7 +459,7 @@ function populateAssetSelect(selectElement) {
     bestAssetsData.assets.forEach(asset => {
         const option = document.createElement('option');
         option.value = asset.symbol;
-        option.textContent = `${asset.name} (${asset.symbol})`;
+        option.textContent = `${asset.symbol} - ${asset.name}`;
         selectElement.appendChild(option);
     });
 }
@@ -467,14 +520,14 @@ function renderComparisonChart(asset1, asset2) {
             labels: labels,
             datasets: [
                 {
-                    label: asset1.name,
+                    label: asset1.symbol,
                     data: asset1Data,
                     backgroundColor: 'rgba(37, 99, 235, 0.7)',
                     borderColor: 'rgba(37, 99, 235, 1)',
                     borderWidth: 1
                 },
                 {
-                    label: asset2.name,
+                    label: asset2.symbol,
                     data: asset2Data,
                     backgroundColor: 'rgba(139, 92, 246, 0.7)',
                     borderColor: 'rgba(139, 92, 246, 1)',
@@ -535,24 +588,24 @@ function renderComparisonMetrics(asset1, asset2) {
             <div class="comparison-metric">
                 <div class="metric-label">Preço Atual</div>
                 <div class="metric-values">
-                    <div class="metric-value">${asset1.name}: ${formatCurrency(asset1.last_price)}</div>
-                    <div class="metric-value">${asset2.name}: ${formatCurrency(asset2.last_price)}</div>
+                    <div class="metric-value">${asset1.symbol}: ${formatCurrency(asset1.last_price, asset1.currency || 'USD', { is_crypto: asset1.is_crypto })}</div>
+                    <div class="metric-value">${asset2.symbol}: ${formatCurrency(asset2.last_price, asset2.currency || 'USD', { is_crypto: asset2.is_crypto })}</div>
                 </div>
             </div>
 
             <div class="comparison-metric">
                 <div class="metric-label">Retorno (${getPeriodLabel(period)})</div>
                 <div class="metric-values">
-                    <div class="metric-value ${getValueClass(asset1[returnField])}">${asset1.name}: ${formatPercentage(asset1[returnField])}</div>
-                    <div class="metric-value ${getValueClass(asset2[returnField])}">${asset2.name}: ${formatPercentage(asset2[returnField])}</div>
+                    <div class="metric-value ${getValueClass(asset1[returnField])}">${asset1.symbol}: ${formatPercentage(asset1[returnField])}</div>
+                    <div class="metric-value ${getValueClass(asset2[returnField])}">${asset2.symbol}: ${formatPercentage(asset2[returnField])}</div>
                 </div>
             </div>
 
             <div class="comparison-metric">
                 <div class="metric-label">Tendência</div>
                 <div class="metric-values">
-                    <div class="metric-value">${asset1.name}: ${getTrendIcon(asset1.trend)} ${asset1.trend}</div>
-                    <div class="metric-value">${asset2.name}: ${getTrendIcon(asset2.trend)} ${asset2.trend}</div>
+                    <div class="metric-value">${asset1.symbol}: ${getTrendIcon(asset1.trend)} ${asset1.trend}</div>
+                    <div class="metric-value">${asset2.symbol}: ${getTrendIcon(asset2.trend)} ${asset2.trend}</div>
                 </div>
             </div>
         </div>
@@ -562,7 +615,7 @@ function renderComparisonMetrics(asset1, asset2) {
             <p>
                 ${worseTrend
                     ? `Ambos os ativos estão em tendência de baixa no momento.`
-                    : `<strong>${betterAsset.name}</strong> apresenta melhor desempenho no período, com uma diferença de <span class="${getValueClass(Math.abs(returnDiff))}">${formatPercentage(Math.abs(returnDiff))}</span> em relação ao outro ativo.`
+                    : `<strong>${betterAsset.symbol}</strong> apresenta melhor desempenho no período, com uma diferença de <span class="${getValueClass(Math.abs(returnDiff))}">${formatPercentage(Math.abs(returnDiff))}</span> em relação ao outro ativo.`
                 }
             </p>
         </div>
@@ -578,7 +631,8 @@ function renderComparisonMetrics(asset1, asset2) {
  */
 function getAssetTypeLabel(type) {
     const typeLabels = {
-        'stocks': 'Ações',
+        'stocks': 'Ações Globais',
+        'brazilian': 'Ações Brasileiras',
         'crypto': 'Criptomoedas',
         'reits': 'Fundos Imobiliários',
         'fixed-income': 'Renda Fixa',
@@ -615,18 +669,33 @@ function getTrendIcon(trend) {
  * Formata números grandes
  */
 function formatLargeNumber(num) {
-    if (num === null || num === undefined) return 'N/A';
+    if (num === null || num === undefined || isNaN(num)) return 'N/A';
 
+    // Para valores muito grandes (bilhões)
     if (num >= 1000000000) {
         return (num / 1000000000).toFixed(1) + 'B';
     }
+    // Para valores grandes (milhões)
     if (num >= 1000000) {
         return (num / 1000000).toFixed(1) + 'M';
     }
+    // Para valores médios (milhares)
     if (num >= 1000) {
         return (num / 1000).toFixed(1) + 'K';
     }
-    return num.toString();
+    // Para valores pequenos (criptomoedas de baixo valor)
+    if (num < 1 && num > 0) {
+        // Determinar quantas casas decimais são necessárias
+        if (num < 0.0001) {
+            return num.toFixed(8);
+        } else if (num < 0.01) {
+            return num.toFixed(6);
+        } else {
+            return num.toFixed(4);
+        }
+    }
+    // Para outros valores
+    return num.toFixed(2);
 }
 
 /**
@@ -713,8 +782,44 @@ function showNotification(message, type = 'info') {
 
 /**
  * Formata valores monetários
+ * @param {number} value - Valor a ser formatado
+ * @param {string} currency - Moeda (USD, BRL, etc.)
+ * @param {Object} options - Opções adicionais
+ * @returns {string} - Valor formatado
  */
-function formatCurrency(value, currency = 'USD') {
+function formatCurrency(value, currency = 'USD', options = {}) {
+    // Verificar se o valor é válido
+    if (value === null || value === undefined || isNaN(value)) {
+        return 'N/A';
+    }
+
+    // Verificar se é uma criptomoeda
+    const isCrypto = options.is_crypto === true;
+
+    // Para criptomoedas, usar formatação especial
+    if (isCrypto) {
+        // Bitcoin e Ethereum usam formatação especial
+        if (value >= 1000) {
+            return currency === 'USD' ? '$' + formatLargeNumber(value) : 'R$ ' + formatLargeNumber(value);
+        }
+        // Para criptomoedas de baixo valor
+        if (value < 1) {
+            if (value < 0.0001) {
+                return currency === 'USD' ? '$' + value.toFixed(8) : 'R$ ' + value.toFixed(8);
+            } else if (value < 0.01) {
+                return currency === 'USD' ? '$' + value.toFixed(6) : 'R$ ' + value.toFixed(6);
+            } else {
+                return currency === 'USD' ? '$' + value.toFixed(4) : 'R$ ' + value.toFixed(4);
+            }
+        }
+    }
+
+    // Para valores muito grandes, usar formatLargeNumber
+    if (value > 10000) {
+        return currency === 'USD' ? '$' + formatLargeNumber(value) : 'R$ ' + formatLargeNumber(value);
+    }
+
+    // Para valores normais, usar Intl.NumberFormat
     return new Intl.NumberFormat('pt-BR', {
         style: 'currency',
         currency: currency,

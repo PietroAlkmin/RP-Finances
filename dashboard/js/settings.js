@@ -149,10 +149,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize settings
     loadSettings();
 
-    // Show API status notification
+    // Show API status notification only if we're using simulated data
     setTimeout(() => {
-        if (window.showNotification) {
+        // Check if we're using real data
+        const usingRealData = window.newsData && window.newsData.source === 'financialModelingPrep';
+
+        // Only show the notification if we're using simulated data
+        if (window.showNotification && !usingRealData) {
             window.showNotification('Usando dados simulados para demonstração. As APIs externas não estão disponíveis no momento.', 'info', 8000);
+        } else if (window.showNotification && usingRealData) {
+            window.showNotification('Usando dados reais das APIs financeiras.', 'success', 5000);
         }
     }, 3000);
 });

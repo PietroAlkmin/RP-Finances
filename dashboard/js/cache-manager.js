@@ -109,46 +109,5 @@ const CacheManager = {
         } catch (error) {
             console.warn(`Erro ao remover item do cache: ${error.message}`);
         }
-    },
-
-    /**
-     * Limpa todo o cache do dashboard
-     */
-    clearAllCache: function() {
-        try {
-            const keys = [];
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key.startsWith('dashboard_cache_')) {
-                    keys.push(key);
-                }
-            }
-
-            keys.forEach(key => localStorage.removeItem(key));
-            console.log(`Todo o cache do dashboard foi limpo. ${keys.length} itens removidos.`);
-        } catch (error) {
-            console.warn(`Erro ao limpar todo o cache: ${error.message}`);
-        }
-    },
-
-    /**
-     * Limpa o cache por tipo (prefixo)
-     * @param {string} type - Tipo/prefixo do cache a ser limpo
-     */
-    clearCacheByType: function(type) {
-        try {
-            const keys = [];
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key.startsWith(`dashboard_cache_${type}`)) {
-                    keys.push(key);
-                }
-            }
-
-            keys.forEach(key => localStorage.removeItem(key));
-            console.log(`Cache do tipo '${type}' foi limpo. ${keys.length} itens removidos.`);
-        } catch (error) {
-            console.warn(`Erro ao limpar cache do tipo '${type}': ${error.message}`);
-        }
     }
 };

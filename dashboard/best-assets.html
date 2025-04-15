@@ -9,6 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/asset-badges.css">
+    <link rel="stylesheet" href="css/show-more.css">
     <link rel="stylesheet" href="css/new-layout.css">
 </head>
 <body>
@@ -67,12 +69,12 @@
                         <h3>Tipo de Ativo</h3>
                         <div class="button-group">
                             <button type="button" class="filter-button active" data-type="all">Todos</button>
-                            <button type="button" class="filter-button" data-type="stocks">Ações</button>
+                            <button type="button" class="filter-button" data-type="stocks">Ações Globais</button>
+                            <button type="button" class="filter-button" data-type="brazilian">Ações Brasileiras</button>
                             <button type="button" class="filter-button" data-type="crypto">Criptomoedas</button>
                             <button type="button" class="filter-button" data-type="reits">Fundos Imobiliários</button>
-                            <button type="button" class="filter-button" data-type="fixed-income">Renda Fixa</button>
                             <button type="button" class="filter-button" data-type="etfs">ETFs</button>
-                            <button type="button" class="filter-button" data-type="gold">Ouro e Derivados</button>
+                            <button type="button" class="filter-button" data-type="fixed-income">Renda Fixa</button>
                         </div>
                     </div>
                 </div>
@@ -89,7 +91,6 @@
                         <thead>
                             <tr>
                                 <th>Ativo</th>
-                                <th>Tipo</th>
                                 <th>Último Preço</th>
                                 <th>Variação</th>
                                 <th>Volume</th>
@@ -99,10 +100,13 @@
                         <tbody id="best-assets-tbody">
                             <!-- Conteúdo será preenchido via JavaScript -->
                             <tr class="loading-row">
-                                <td colspan="6">Carregando dados...</td>
+                                <td colspan="5">Carregando dados...</td>
                             </tr>
                         </tbody>
                     </table>
+                    <div class="show-more-container">
+                        <button id="show-more-button" class="show-more-button">Mostrar Mais</button>
+                    </div>
                 </div>
             </section>
 
@@ -225,10 +229,17 @@
     <script src="js/auth-manager.js"></script>
     <script src="js/data-loader.js"></script>
 
-    <!-- Novos módulos de dados -->
-    <!-- Crypto módulos removidos para evitar problemas -->
+    <!-- Módulos de dados API -->
+    <script src="js/global-stocks.js"></script>
+    <script src="js/brazilian-stocks.js"></script>
+    <script src="js/crypto-data.js"></script>
+    <script src="js/economic-data.js"></script>
+    <script src="js/news-data.js"></script>
+
+    <!-- Módulos de carregamento de dados -->
     <script src="js/economic-loader.js"></script>
     <script src="js/stock-loader.js"></script>
+    <script src="js/best-assets-loader.js"></script>
 
     <script src="js/charts.js"></script>
     <script src="js/best-assets.js"></script>
