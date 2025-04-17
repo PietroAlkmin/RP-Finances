@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/new-layout.css">
+    <link rel="stylesheet" href="css/filter-improvements.css">
 </head>
 <body>
     <!-- Sidebar Navigation -->
@@ -28,11 +29,7 @@
 
     <!-- Main Content -->
     <div class="dashboard-container">
-        <div class="dashboard-header">
-            <h1>Notícias Financeiras</h1>
-            <p>Acompanhe as últimas notícias e análises do mercado financeiro</p>
-            <p class="date" id="current-date">Atualizado em: </p>
-        </div>
+        <!-- Header removed as requested -->
 
         <main class="main-content news-content">
             <!-- Indicador de carregamento -->
@@ -50,33 +47,15 @@
                 <p><small>Nota: A API gratuita permite apenas 100 chamadas por dia. Você já atingiu esse limite.</small></p>
                 <p><small>Para remover essa limitação, é necessário assinar um plano premium em <a href="https://gnews.io/pricing" target="_blank" rel="noopener noreferrer">gnews.io/pricing</a>.</small></p>
                 <button type="button" id="retry-button" class="retry-button">Tentar novamente</button>
+                <button type="button" id="clear-cache-button" class="retry-button" style="margin-left: 10px;">Limpar Cache</button>
             </div>
 
             <!-- Filtros de Notícias -->
-            <section class="card filter-card">
-                <h2>Filtros</h2>
+            <section class="filter-card">
+                <h2>Filtros de Notícias <span id="active-filters-count"></span></h2>
                 <div class="filter-container">
-                    <div class="source-filter">
-                        <h3>Fontes</h3>
-                        <div class="button-group">
-                            <button type="button" class="filter-button active" data-source="all">Todas</button>
-                            <button type="button" class="filter-button" data-source="infomoney">InfoMoney</button>
-                            <button type="button" class="filter-button" data-source="bbc">BBC</button>
-                            <button type="button" class="filter-button" data-source="forbes">Forbes</button>
-                            <button type="button" class="filter-button" data-source="g1">G1</button>
-                            <button type="button" class="filter-button" data-source="investing">Investing.com</button>
-                        </div>
-                    </div>
-                    <div class="language-filter">
-                        <h3>Idioma</h3>
-                        <div class="button-group">
-                            <button type="button" class="filter-button active" data-language="all">Todos</button>
-                            <button type="button" class="filter-button" data-language="pt">Português</button>
-                            <button type="button" class="filter-button" data-language="en">Inglês</button>
-                        </div>
-                    </div>
                     <div class="topic-filter">
-                        <h3>Tópicos</h3>
+                        <h3>Tópicos Financeiros</h3>
                         <div class="button-group">
                             <button type="button" class="filter-button active" data-topic="all">Todos</button>
                             <button type="button" class="filter-button" data-topic="stocks">Ações</button>
@@ -86,6 +65,14 @@
                             <button type="button" class="filter-button" data-topic="etfs">ETFs</button>
                             <button type="button" class="filter-button" data-topic="gold">Ouro</button>
                             <button type="button" class="filter-button" data-topic="economy">Economia</button>
+                        </div>
+                    </div>
+                    <div class="language-filter">
+                        <h3>Idioma</h3>
+                        <div class="button-group">
+                            <button type="button" class="filter-button active" data-language="all">Todos</button>
+                            <button type="button" class="filter-button" data-language="pt">Português</button>
+                            <button type="button" class="filter-button" data-language="en">Inglês</button>
                         </div>
                     </div>
                 </div>
@@ -100,49 +87,7 @@
                 </div>
             </section>
 
-            <!-- Feeds de Notícias -->
-            <section class="card news-feeds-card">
-                <h2>Feeds de Notícias</h2>
-                <div class="news-tabs">
-                    <button type="button" class="tab-button active" data-tab="infomoney">InfoMoney</button>
-                    <button type="button" class="tab-button" data-tab="bbc">BBC</button>
-                    <button type="button" class="tab-button" data-tab="forbes">Forbes</button>
-                    <button type="button" class="tab-button" data-tab="g1">G1</button>
-                    <button type="button" class="tab-button" data-tab="investing">Investing.com</button>
-                </div>
-                <div class="news-content">
-                    <div class="tab-content active" id="infomoney-news">
-                        <div class="news-feed" id="infomoney-feed">
-                            <!-- Conteúdo será preenchido via JavaScript -->
-                            <div class="loading-indicator">Carregando notícias do InfoMoney...</div>
-                        </div>
-                    </div>
-                    <div class="tab-content" id="bbc-news">
-                        <div class="news-feed" id="bbc-feed">
-                            <!-- Conteúdo será preenchido via JavaScript -->
-                            <div class="loading-indicator">Carregando notícias da BBC...</div>
-                        </div>
-                    </div>
-                    <div class="tab-content" id="forbes-news">
-                        <div class="news-feed" id="forbes-feed">
-                            <!-- Conteúdo será preenchido via JavaScript -->
-                            <div class="loading-indicator">Carregando notícias da Forbes...</div>
-                        </div>
-                    </div>
-                    <div class="tab-content" id="g1-news">
-                        <div class="news-feed" id="g1-feed">
-                            <!-- Conteúdo será preenchido via JavaScript -->
-                            <div class="loading-indicator">Carregando notícias do G1...</div>
-                        </div>
-                    </div>
-                    <div class="tab-content" id="investing-news">
-                        <div class="news-feed" id="investing-feed">
-                            <!-- Conteúdo será preenchido via JavaScript -->
-                            <div class="loading-indicator">Carregando notícias do Investing.com...</div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+
 
             <!-- Análise de Sentimento -->
             <section class="card sentiment-card">

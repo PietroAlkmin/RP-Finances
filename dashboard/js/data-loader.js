@@ -875,31 +875,90 @@ function simulateIndicesData() {
             name: 'S&P 500',
             region: 'US',
             last_price: 5250 + (Math.random() * 50 - 25),
-            period_return: 2.5 + (Math.random() * 2 - 1),
-            week_return: 0.8 + (Math.random() * 1 - 0.5),
-            volatility: 12 + (Math.random() * 2 - 1),
-            trend: Math.random() > 0.3 ? 'Alta' : 'Baixa'
+            hours24_return: 0.3 + (Math.random() * 0.8 - 0.4),
+            month_return: 2.5 + (Math.random() * 2 - 1),
+            ytd_return: 8.2 + (Math.random() * 3 - 1.5),
+            year12_return: 15.8 + (Math.random() * 5 - 2.5)
         },
         {
             symbol: '^DJI',
             name: 'Dow Jones',
             region: 'US',
             last_price: 39000 + (Math.random() * 300 - 150),
-            period_return: 1.8 + (Math.random() * 2 - 1),
-            week_return: 0.5 + (Math.random() * 1 - 0.5),
-            volatility: 10 + (Math.random() * 2 - 1),
-            trend: Math.random() > 0.3 ? 'Alta' : 'Baixa'
+            hours24_return: 0.2 + (Math.random() * 0.6 - 0.3),
+            month_return: 1.8 + (Math.random() * 2 - 1),
+            ytd_return: 6.5 + (Math.random() * 3 - 1.5),
+            year12_return: 12.4 + (Math.random() * 5 - 2.5)
         },
-        // Outros índices simulados...
+        {
+            symbol: '^IXIC',
+            name: 'Nasdaq',
+            region: 'US',
+            last_price: 16500 + (Math.random() * 150 - 75),
+            hours24_return: 0.4 + (Math.random() * 1 - 0.5),
+            month_return: 3.2 + (Math.random() * 2 - 1),
+            ytd_return: 10.5 + (Math.random() * 3 - 1.5),
+            year12_return: 18.7 + (Math.random() * 5 - 2.5)
+        },
+        {
+            symbol: '^FTSE',
+            name: 'FTSE 100',
+            region: 'UK',
+            last_price: 7800 + (Math.random() * 80 - 40),
+            hours24_return: 0.1 + (Math.random() * 0.6 - 0.3),
+            month_return: 1.2 + (Math.random() * 2 - 1),
+            ytd_return: 4.7 + (Math.random() * 3 - 1.5),
+            year12_return: 9.8 + (Math.random() * 5 - 2.5)
+        },
+        {
+            symbol: '^GDAXI',
+            name: 'DAX',
+            region: 'EU',
+            last_price: 18200 + (Math.random() * 180 - 90),
+            hours24_return: 0.2 + (Math.random() * 0.8 - 0.4),
+            month_return: 2.0 + (Math.random() * 2 - 1),
+            ytd_return: 7.8 + (Math.random() * 3 - 1.5),
+            year12_return: 14.2 + (Math.random() * 5 - 2.5)
+        },
+        {
+            symbol: '^FCHI',
+            name: 'CAC 40',
+            region: 'EU',
+            last_price: 7900 + (Math.random() * 80 - 40),
+            hours24_return: 0.15 + (Math.random() * 0.7 - 0.35),
+            month_return: 1.8 + (Math.random() * 2 - 1),
+            ytd_return: 6.9 + (Math.random() * 3 - 1.5),
+            year12_return: 13.4 + (Math.random() * 5 - 2.5)
+        },
+        {
+            symbol: '^N225',
+            name: 'Nikkei 225',
+            region: 'JP',
+            last_price: 38500 + (Math.random() * 350 - 175),
+            hours24_return: 0.25 + (Math.random() * 0.9 - 0.45),
+            month_return: 2.3 + (Math.random() * 2 - 1),
+            ytd_return: 9.1 + (Math.random() * 3 - 1.5),
+            year12_return: 17.5 + (Math.random() * 5 - 2.5)
+        },
+        {
+            symbol: '^HSI',
+            name: 'Hang Seng',
+            region: 'HK',
+            last_price: 16800 + (Math.random() * 160 - 80),
+            hours24_return: -0.3 + (Math.random() * 1 - 0.5),
+            month_return: -2.1 + (Math.random() * 2 - 1),
+            ytd_return: -4.8 + (Math.random() * 3 - 1.5),
+            year12_return: -11.3 + (Math.random() * 5 - 2.5)
+        },
         {
             symbol: '^BVSP',
             name: 'Ibovespa',
             region: 'BR',
             last_price: 128000 + (Math.random() * 1200 - 600),
-            period_return: 1.9 + (Math.random() * 2 - 1),
-            week_return: 0.6 + (Math.random() * 1 - 0.5),
-            volatility: 18 + (Math.random() * 2 - 1),
-            trend: Math.random() > 0.4 ? 'Alta' : 'Baixa'
+            hours24_return: 0.3 + (Math.random() * 0.8 - 0.4),
+            month_return: 1.9 + (Math.random() * 2 - 1),
+            ytd_return: 5.4 + (Math.random() * 3 - 1.5),
+            year12_return: 12.8 + (Math.random() * 5 - 2.5)
         }
     ];
 }
@@ -1429,6 +1488,9 @@ async function fetchGeneralNews(source, language, topic) {
                     }
                 }
 
+                // Se a fonte for 'other', usar o nome original como sourceName
+                const sourceName = newsSource === 'other' ? originalSource : (CONFIG.newsSources[newsSource]?.name || originalSource);
+
                 // Determinar idioma com base na fonte e conteúdo
                 let newsLanguage = 'en'; // Padrão em inglês
 
@@ -1533,7 +1595,7 @@ async function fetchGeneralNews(source, language, topic) {
                     content: content,
                     urlToImage: urlToImage,
                     originalSource: originalSource,
-                    sourceName: originalSource,
+                    sourceName: sourceName, // Usar o nome da fonte determinado acima
 
                     // Campos de análise
                     topics: newsTopics,
@@ -1732,19 +1794,36 @@ function simulateGeneralNews(source, language, topic) {
     filteredNews.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
 
     // Adicionar campos adicionais necessários para cada notícia
-    filteredNews = filteredNews.map(news => ({
-        ...news,
-        // Adicionar campos que podem estar faltando
-        author: news.author || 'Autor desconhecido',
-        content: news.content || news.description,
-        urlToImage: news.urlToImage || '',
-        originalSource: news.originalSource || news.source,
-        sourceName: news.sourceName || (CONFIG.newsSources[news.source] ? CONFIG.newsSources[news.source].name : news.source),
-        // Adicionar campos de análise se não existirem
-        positiveScore: news.positiveScore || Math.floor(Math.random() * 5),
-        negativeScore: news.negativeScore || Math.floor(Math.random() * 5),
-        sentimentScore: news.sentimentScore || (news.sentiment === 'positive' ? 2 : news.sentiment === 'negative' ? -2 : 0)
-    }));
+    filteredNews = filteredNews.map(news => {
+        // Determinar o nome da fonte para exibição
+        let sourceName = news.sourceName;
+        if (!sourceName) {
+            if (news.originalSource) {
+                sourceName = news.originalSource;
+            } else if (CONFIG.newsSources[news.source]) {
+                sourceName = CONFIG.newsSources[news.source].name;
+            } else {
+                // Formatar o nome da fonte se não estiver no mapeamento
+                sourceName = news.source.split('-').map(word =>
+                    word.charAt(0).toUpperCase() + word.slice(1)
+                ).join(' ');
+            }
+        }
+
+        return {
+            ...news,
+            // Adicionar campos que podem estar faltando
+            author: news.author || 'Autor desconhecido',
+            content: news.content || news.description,
+            urlToImage: news.urlToImage || '',
+            originalSource: news.originalSource || news.source,
+            sourceName: sourceName,
+            // Adicionar campos de análise se não existirem
+            positiveScore: news.positiveScore || Math.floor(Math.random() * 5),
+            negativeScore: news.negativeScore || Math.floor(Math.random() * 5),
+            sentimentScore: news.sentimentScore || (news.sentiment === 'positive' ? 2 : news.sentiment === 'negative' ? -2 : 0)
+        };
+    });
 
     return filteredNews;
 }
@@ -1877,7 +1956,10 @@ function processRegionsData(indicesData) {
         }
 
         regions[region].indices.push(index);
-        regions[region].avg_return += index.period_return;
+
+        // Usar o retorno de 12 meses se disponível, caso contrário usar period_return
+        const returnValue = index.year12_return !== undefined ? index.year12_return : index.period_return;
+        regions[region].avg_return += returnValue;
         regions[region].count += 1;
     });
 
@@ -1954,12 +2036,18 @@ function calculateCorrelations(indicesData) {
  * Gera resumo do mercado
  */
 function generateMarketSummary(indicesData, stocksData, regionsData, sectorsData) {
-    // Encontrar melhor e pior índice
-    const bestIndex = indicesData.reduce((best, current) =>
-        current.period_return > best.period_return ? current : best, indicesData[0]);
+    // Encontrar melhor e pior índice usando retorno de 12 meses
+    const bestIndex = indicesData.reduce((best, current) => {
+        const bestReturn = best.year12_return !== undefined ? best.year12_return : best.period_return;
+        const currentReturn = current.year12_return !== undefined ? current.year12_return : current.period_return;
+        return currentReturn > bestReturn ? current : best;
+    }, indicesData[0]);
 
-    const worstIndex = indicesData.reduce((worst, current) =>
-        current.period_return < worst.period_return ? current : worst, indicesData[0]);
+    const worstIndex = indicesData.reduce((worst, current) => {
+        const worstReturn = worst.year12_return !== undefined ? worst.year12_return : worst.period_return;
+        const currentReturn = current.year12_return !== undefined ? current.year12_return : current.period_return;
+        return currentReturn < worstReturn ? current : worst;
+    }, indicesData[0]);
 
     // Encontrar melhor e pior ação
     const bestStock = stocksData.reduce((best, current) =>
@@ -1986,17 +2074,21 @@ function generateMarketSummary(indicesData, stocksData, regionsData, sectorsData
             : best,
         { sector: null, avg_return: -Infinity });
 
+    // Obter o retorno apropriado para os índices
+    const bestIndexReturn = bestIndex.year12_return !== undefined ? bestIndex.year12_return : bestIndex.period_return;
+    const worstIndexReturn = worstIndex.year12_return !== undefined ? worstIndex.year12_return : worstIndex.period_return;
+
     return {
         date: new Date().toISOString(),
         indices_count: indicesData.length,
         stocks_count: stocksData.length,
         best_performing_index: {
             name: bestIndex.name,
-            return: bestIndex.period_return
+            return: bestIndexReturn
         },
         worst_performing_index: {
             name: worstIndex.name,
-            return: worstIndex.period_return
+            return: worstIndexReturn
         },
         best_performing_stock: {
             name: bestStock.name,

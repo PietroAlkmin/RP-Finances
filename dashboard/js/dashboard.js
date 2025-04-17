@@ -188,6 +188,13 @@ function renderIndicesTable() {
     let tableHTML = '';
 
     indices.forEach(index => {
+        // Usar os novos campos de retorno baseados em tempo
+        // Se os campos não existirem, usar valores padrão ou calcular
+        const hours24Return = index.hours24_return !== undefined ? index.hours24_return : (index.period_return / 3);
+        const monthReturn = index.month_return !== undefined ? index.month_return : index.period_return;
+        const ytdReturn = index.ytd_return !== undefined ? index.ytd_return : (index.period_return * 3);
+        const year12Return = index.year12_return !== undefined ? index.year12_return : (index.period_return * 5);
+
         tableHTML += `
             <tr>
                 <td>
@@ -195,10 +202,10 @@ function renderIndicesTable() {
                     <div class="index-symbol">${index.symbol}</div>
                 </td>
                 <td>${formatLargeNumber(index.last_price)}</td>
-                <td class="${getValueClass(index.period_return)}">${formatPercentage(index.period_return)}</td>
-                <td class="${getValueClass(index.week_return)}">${formatPercentage(index.week_return)}</td>
-                <td>${index.volatility.toFixed(2)}</td>
-                <td>${getTrendIcon(index.trend)} ${index.trend}</td>
+                <td class="${getValueClass(hours24Return)}">${formatPercentage(hours24Return)}</td>
+                <td class="${getValueClass(monthReturn)}">${formatPercentage(monthReturn)}</td>
+                <td class="${getValueClass(ytdReturn)}">${formatPercentage(ytdReturn)}</td>
+                <td class="${getValueClass(year12Return)}">${formatPercentage(year12Return)}</td>
             </tr>
         `;
     });
@@ -234,7 +241,11 @@ function renderIndicesChart() {
     const topIndices = indices.slice(0, 8);
 
     const labels = topIndices.map(index => index.name);
-    const returns = topIndices.map(index => index.period_return);
+
+    // Usar os retornos de 12 meses para o gráfico
+    const returns = topIndices.map(index => {
+        return index.year12_return !== undefined ? index.year12_return : (index.period_return * 5);
+    });
 
     // Determinar cores com base no valor (positivo/negativo)
     const backgroundColors = returns.map((value, index) =>
@@ -252,7 +263,7 @@ function renderIndicesChart() {
         data: {
             labels: labels,
             datasets: [{
-                label: 'Retorno do Período',
+                label: 'Retorno em 12 meses',
                 data: returns,
                 backgroundColor: backgroundColors,
                 borderWidth: 1
