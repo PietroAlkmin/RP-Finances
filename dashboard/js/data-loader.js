@@ -146,7 +146,7 @@ async function loadAllData() {
         const loadingIndicator = document.getElementById('loading-indicator');
         if (loadingIndicator) loadingIndicator.classList.remove('hidden');
 
-        // Obter dados de índices (reais ou simulados)
+        // Obter dados de índices (com fallback para dados simulados)
         let indicesData;
         try {
             indicesData = await fetchIndicesData();
@@ -155,10 +155,16 @@ async function loadAllData() {
             console.error('Erro ao carregar índices:', error);
             dashboardData.indicesError = true;
             // Usar dados em cache se disponíveis, caso contrário usar dados simulados
-            indicesData = dashboardData.indices || await simulateIndicesData();
+            if (dashboardData.indices) {
+                console.log('Usando dados de índices do cache após erro na API');
+                indicesData = dashboardData.indices;
+            } else {
+                console.log('Usando dados simulados para índices');
+                indicesData = simulateIndicesData();
+            }
         }
 
-        // Obter dados de ações (reais ou simulados)
+        // Obter dados de ações (com fallback para dados simulados)
         let stocksData;
         try {
             stocksData = await fetchStocksData();
@@ -167,7 +173,13 @@ async function loadAllData() {
             console.error('Erro ao carregar ações:', error);
             dashboardData.stocksError = true;
             // Usar dados em cache se disponíveis, caso contrário usar dados simulados
-            stocksData = dashboardData.stocks || await simulateStocksData();
+            if (dashboardData.stocks) {
+                console.log('Usando dados de ações do cache após erro na API');
+                stocksData = dashboardData.stocks;
+            } else {
+                console.log('Usando dados simulados para ações');
+                stocksData = simulateStocksData();
+            }
         }
 
         // Processar dados para análise regional
@@ -723,7 +735,7 @@ async function fetchIndicesData() {
         }
 
         console.log('Obtendo dados de índices da API...');
-        console.log('Usando API key Alpha Vantage:', CONFIG.apiKeys.alphaVantage);
+        console.log('Usando API key Finnhub:', CONFIG.apiKeys.finnhub);
         console.log('Proxy habilitado:', CONFIG.apiEndpoints.useProxy);
 
         // Lista de símbolos de índices que queremos obter
@@ -757,8 +769,7 @@ async function fetchIndicesData() {
         // Resultados
         const results = [];
 
-        // Em um ambiente real, faríamos uma chamada para a API do Yahoo Finance
-        // Como exemplo, vamos usar fetch para obter dados de cada índice
+        // Obter dados reais da API para cada índice
         for (const symbol of symbols) {
             try {
                 // Construir URL para a API do Yahoo Finance
@@ -770,87 +781,84 @@ async function fetchIndicesData() {
                     url = `${CONFIG.apiEndpoints.yahooFinance}/chart/${symbol}?interval=1d&range=1mo`;
                 }
 
-                // Tentar fazer a chamada à API
-                // Nota: Em um ambiente de desenvolvimento, isso pode falhar devido a restrições de CORS
-                // Nesse caso, usamos dados simulados como fallback
-                let response;
-                try {
-                    response = await fetch(url);
+                console.log(`Obtendo dados para índice ${symbol} com URL:`, url);
 
-                    if (!response.ok) {
-                        throw new Error(`Erro na API: ${response.status}`);
+                // Fazer a chamada à API
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    console.error(`Erro na API para ${symbol}: ${response.status}`);
+                    throw new Error(`Erro na API para ${symbol}: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Verificar se a resposta contém dados válidos
+                if (data.chart && data.chart.result && data.chart.result.length > 0) {
+                    const result = data.chart.result[0];
+                    const meta = result.meta || {};
+                    const timestamp = result.timestamp || [];
+                    const quote = result.indicators.quote[0] || {};
+
+                    // Verificar se temos dados suficientes
+                    if (timestamp.length > 0 && quote.close && quote.close.length > 0) {
+                        // Obter preço atual e histórico
+                        const lastPrice = meta.regularMarketPrice || quote.close[quote.close.length - 1];
+
+                        // Calcular retornos para diferentes períodos
+                        // Últimas 24 horas (aproximadamente o último dia de negociação)
+                        const oneDayIndex = Math.max(0, quote.close.length - 2);
+                        const oneDayPrice = quote.close[oneDayIndex];
+                        const hours24Return = ((lastPrice - oneDayPrice) / oneDayPrice) * 100;
+
+                        // Último mês (aproximadamente 20 dias de negociação)
+                        const monthIndex = Math.max(0, quote.close.length - 21);
+                        const monthPrice = quote.close[monthIndex];
+                        const monthReturn = ((lastPrice - monthPrice) / monthPrice) * 100;
+
+                        // YTD (desde o início do ano) - simplificação para exemplo
+                        // Em um ambiente real, precisaríamos de dados desde 1º de janeiro
+                        const ytdIndex = Math.max(0, Math.floor(quote.close.length / 2)); // Simplificação
+                        const ytdPrice = quote.close[ytdIndex];
+                        const ytdReturn = ((lastPrice - ytdPrice) / ytdPrice) * 100;
+
+                        // Últimos 12 meses - simplificação para exemplo
+                        // Em um ambiente real, precisaríamos de dados de 12 meses atrás
+                        const year12Index = 0; // Primeiro preço disponível (simplificação)
+                        const year12Price = quote.close[year12Index];
+                        const year12Return = ((lastPrice - year12Price) / year12Price) * 100;
+
+                        // Adicionar ao resultado
+                        results.push({
+                            symbol: symbol,
+                            name: indexInfo[symbol].name,
+                            region: indexInfo[symbol].region,
+                            last_price: lastPrice,
+                            hours24_return: hours24Return,
+                            month_return: monthReturn,
+                            ytd_return: ytdReturn,
+                            year12_return: year12Return
+                        });
+                    } else {
+                        console.warn(`Dados insuficientes para ${symbol}`);
+                        throw new Error(`Dados insuficientes para ${symbol}`);
                     }
-
-                    const data = await response.json();
-                    const quote = data.chart.result[0].indicators.quote[0];
-                    const meta = data.chart.result[0].meta;
-                    const timestamps = data.chart.result[0].timestamp;
-
-                    // Calcular retornos e volatilidade com base nos dados históricos
-                    const lastPrice = meta.regularMarketPrice || quote.close[quote.close.length - 1];
-                    const previousPrice = quote.close[0];
-                    const periodReturn = ((lastPrice - previousPrice) / previousPrice) * 100;
-
-                    // Calcular volatilidade (desvio padrão dos retornos diários)
-                    const dailyReturns = [];
-                    for (let i = 1; i < quote.close.length; i++) {
-                        if (quote.close[i-1] && quote.close[i]) {
-                            const dailyReturn = ((quote.close[i] - quote.close[i-1]) / quote.close[i-1]) * 100;
-                            dailyReturns.push(dailyReturn);
-                        }
-                    }
-
-                    // Calcular desvio padrão (volatilidade)
-                    const avgReturn = dailyReturns.reduce((sum, val) => sum + val, 0) / dailyReturns.length;
-                    const squaredDiffs = dailyReturns.map(val => Math.pow(val - avgReturn, 2));
-                    const variance = squaredDiffs.reduce((sum, val) => sum + val, 0) / squaredDiffs.length;
-                    const volatility = Math.sqrt(variance) * Math.sqrt(252); // Anualizado
-
-                    // Determinar tendência
-                    const trend = periodReturn > 0 ? 'Alta' : 'Baixa';
-
-                    // Adicionar ao resultado
-                    results.push({
-                        symbol: symbol,
-                        name: indexInfo[symbol].name,
-                        region: indexInfo[symbol].region,
-                        last_price: lastPrice,
-                        period_return: periodReturn,
-                        week_return: periodReturn / 4, // Simplificação para exemplo
-                        volatility: volatility,
-                        trend: trend
-                    });
-
-                } catch (apiError) {
-                    console.warn(`Erro ao obter dados da API para ${symbol}. Usando dados simulados como fallback.`, apiError);
-
-                    // Usar dados simulados como fallback
-                    results.push({
-                        symbol: symbol,
-                        name: indexInfo[symbol].name,
-                        region: indexInfo[symbol].region,
-                        last_price: symbol === '^GSPC' ? 5250 + (Math.random() * 50 - 25) :
-                                   symbol === '^DJI' ? 39000 + (Math.random() * 300 - 150) :
-                                   symbol === '^IXIC' ? 16500 + (Math.random() * 150 - 75) :
-                                   symbol === '^FTSE' ? 7800 + (Math.random() * 80 - 40) :
-                                   symbol === '^GDAXI' ? 18200 + (Math.random() * 180 - 90) :
-                                   symbol === '^FCHI' ? 7900 + (Math.random() * 80 - 40) :
-                                   symbol === '^N225' ? 38500 + (Math.random() * 350 - 175) :
-                                   symbol === '^HSI' ? 16800 + (Math.random() * 160 - 80) :
-                                   symbol === '^BVSP' ? 128000 + (Math.random() * 1200 - 600) :
-                                   3100 + (Math.random() * 30 - 15), // 000001.SS
-                        period_return: (Math.random() * 4 - 1),
-                        week_return: (Math.random() * 2 - 0.5),
-                        volatility: 10 + (Math.random() * 10),
-                        trend: Math.random() > 0.4 ? 'Alta' : 'Baixa'
-                    });
+                } else {
+                    console.warn(`Resposta inválida para ${symbol}:`, data);
+                    throw new Error(`Resposta inválida para ${symbol}`);
                 }
             } catch (error) {
                 console.error(`Erro ao processar índice ${symbol}:`, error);
+                // Não adicionar dados simulados - apenas registrar o erro
             }
         }
 
         console.log(`Dados de ${results.length} índices obtidos com sucesso`);
+
+        // Verificar se temos pelo menos alguns dados
+        if (results.length === 0) {
+            throw new Error('Não foi possível obter dados reais para nenhum índice');
+        }
 
         // Salvar dados no cache
         CacheManager.saveToCache('indices', results, CONFIG.cache.ttl.indices);
@@ -858,9 +866,7 @@ async function fetchIndicesData() {
         return results;
     } catch (error) {
         console.error('Erro ao obter dados de índices:', error);
-
-        // Em caso de erro, retornar dados simulados como fallback
-        return simulateIndicesData();
+        throw error; // Propagar o erro para que o loadAllData possa usar dados simulados
     }
 }
 
@@ -978,6 +984,7 @@ async function fetchStocksData() {
         }
 
         console.log('Obtendo dados de ações da API...');
+        console.log('Usando API key Finnhub:', CONFIG.apiKeys.finnhub);
 
         // Lista de símbolos de ações que queremos obter
         const symbols = [
@@ -1006,8 +1013,7 @@ async function fetchStocksData() {
         // Resultados
         const results = [];
 
-        // Em um ambiente real, faríamos uma chamada para a API do Yahoo Finance
-        // Como exemplo, vamos usar fetch para obter dados de cada ação
+        // Obter dados reais da API para cada ação
         for (const symbol of symbols) {
             try {
                 // Construir URL para a API do Yahoo Finance
@@ -1019,100 +1025,90 @@ async function fetchStocksData() {
                     url = `${CONFIG.apiEndpoints.yahooFinance}/chart/${symbol}?interval=1d&range=1mo`;
                 }
 
-                // Tentar fazer a chamada à API
-                // Nota: Em um ambiente de desenvolvimento, isso pode falhar devido a restrições de CORS
-                // Nesse caso, usamos dados simulados como fallback
-                let response;
-                try {
-                    response = await fetch(url);
+                console.log(`Obtendo dados para ação ${symbol} com URL:`, url);
 
-                    if (!response.ok) {
-                        throw new Error(`Erro na API: ${response.status}`);
+                // Fazer a chamada à API
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    console.error(`Erro na API para ${symbol}: ${response.status}`);
+                    throw new Error(`Erro na API para ${symbol}: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Verificar se a resposta contém dados válidos
+                if (data.chart && data.chart.result && data.chart.result.length > 0) {
+                    const result = data.chart.result[0];
+                    const meta = result.meta || {};
+                    const timestamp = result.timestamp || [];
+                    const quote = result.indicators.quote[0] || {};
+
+                    // Verificar se temos dados suficientes
+                    if (timestamp.length > 0 && quote.close && quote.close.length > 0) {
+                        // Obter preço atual e histórico
+                        const lastPrice = meta.regularMarketPrice || quote.close[quote.close.length - 1];
+
+                        // Calcular retornos para diferentes períodos
+                        // Últimas 24 horas (aproximadamente o último dia de negociação)
+                        const oneDayIndex = Math.max(0, quote.close.length - 2);
+                        const oneDayPrice = quote.close[oneDayIndex];
+                        const hours24Return = ((lastPrice - oneDayPrice) / oneDayPrice) * 100;
+
+                        // Último mês (aproximadamente 20 dias de negociação)
+                        const monthIndex = Math.max(0, quote.close.length - 21);
+                        const monthPrice = quote.close[monthIndex];
+                        const monthReturn = ((lastPrice - monthPrice) / monthPrice) * 100;
+
+                        // YTD (desde o início do ano) - simplificação para exemplo
+                        // Em um ambiente real, precisaríamos de dados desde 1º de janeiro
+                        const ytdIndex = Math.max(0, Math.floor(quote.close.length / 2)); // Simplificação
+                        const ytdPrice = quote.close[ytdIndex];
+                        const ytdReturn = ((lastPrice - ytdPrice) / ytdPrice) * 100;
+
+                        // Últimos 12 meses - simplificação para exemplo
+                        // Em um ambiente real, precisaríamos de dados de 12 meses atrás
+                        const year12Index = 0; // Primeiro preço disponível (simplificação)
+                        const year12Price = quote.close[year12Index];
+                        const year12Return = ((lastPrice - year12Price) / year12Price) * 100;
+
+                        // Calcular volume médio
+                        const avgVolume = quote.volume.reduce((sum, val) => sum + (val || 0), 0) /
+                                         quote.volume.filter(vol => vol !== null && vol !== undefined).length;
+
+                        // Adicionar ao resultado
+                        results.push({
+                            symbol: symbol,
+                            name: stockInfo[symbol].name,
+                            region: stockInfo[symbol].region,
+                            sector: stockInfo[symbol].sector,
+                            last_price: lastPrice,
+                            hours24_return: hours24Return,
+                            month_return: monthReturn,
+                            ytd_return: ytdReturn,
+                            year12_return: year12Return,
+                            avg_volume: avgVolume
+                        });
+                    } else {
+                        console.warn(`Dados insuficientes para ${symbol}`);
+                        throw new Error(`Dados insuficientes para ${symbol}`);
                     }
-
-                    const data = await response.json();
-                    const quote = data.chart.result[0].indicators.quote[0];
-                    const meta = data.chart.result[0].meta;
-                    const timestamps = data.chart.result[0].timestamp;
-
-                    // Calcular retornos e volatilidade com base nos dados históricos
-                    const lastPrice = meta.regularMarketPrice || quote.close[quote.close.length - 1];
-                    const previousPrice = quote.close[0];
-                    const periodReturn = ((lastPrice - previousPrice) / previousPrice) * 100;
-
-                    // Calcular volatilidade (desvio padrão dos retornos diários)
-                    const dailyReturns = [];
-                    for (let i = 1; i < quote.close.length; i++) {
-                        if (quote.close[i-1] && quote.close[i]) {
-                            const dailyReturn = ((quote.close[i] - quote.close[i-1]) / quote.close[i-1]) * 100;
-                            dailyReturns.push(dailyReturn);
-                        }
-                    }
-
-                    // Calcular desvio padrão (volatilidade)
-                    const avgReturn = dailyReturns.reduce((sum, val) => sum + val, 0) / dailyReturns.length;
-                    const squaredDiffs = dailyReturns.map(val => Math.pow(val - avgReturn, 2));
-                    const variance = squaredDiffs.reduce((sum, val) => sum + val, 0) / squaredDiffs.length;
-                    const volatility = Math.sqrt(variance) * Math.sqrt(252); // Anualizado
-
-                    // Calcular volume médio
-                    const avgVolume = quote.volume.reduce((sum, val) => sum + (val || 0), 0) /
-                                     quote.volume.filter(vol => vol !== null && vol !== undefined).length;
-
-                    // Determinar tendência
-                    const trend = periodReturn > 0 ? 'Alta' : 'Baixa';
-
-                    // Adicionar ao resultado
-                    results.push({
-                        symbol: symbol,
-                        name: stockInfo[symbol].name,
-                        region: stockInfo[symbol].region,
-                        sector: stockInfo[symbol].sector,
-                        last_price: lastPrice,
-                        period_return: periodReturn,
-                        week_return: periodReturn / 4, // Simplificação para exemplo
-                        volatility: volatility,
-                        avg_volume: avgVolume,
-                        trend: trend
-                    });
-
-                } catch (apiError) {
-                    console.warn(`Erro ao obter dados da API para ${symbol}. Usando dados simulados como fallback.`, apiError);
-
-                    // Usar dados simulados como fallback
-                    results.push({
-                        symbol: symbol,
-                        name: stockInfo[symbol].name,
-                        region: stockInfo[symbol].region,
-                        sector: stockInfo[symbol].sector,
-                        last_price: symbol === 'AAPL' ? 175 + (Math.random() * 10 - 5) :
-                                   symbol === 'MSFT' ? 410 + (Math.random() * 15 - 7.5) :
-                                   symbol === 'GOOGL' ? 150 + (Math.random() * 8 - 4) :
-                                   symbol === 'AMZN' ? 180 + (Math.random() * 10 - 5) :
-                                   symbol === 'TSLA' ? 190 + (Math.random() * 15 - 7.5) :
-                                   symbol === 'PETR4.SA' ? 35 + (Math.random() * 2 - 1) :
-                                   symbol === 'VALE3.SA' ? 65 + (Math.random() * 3 - 1.5) :
-                                   32 + (Math.random() * 1.5 - 0.75), // ITUB4.SA
-                        period_return: (Math.random() * 6 - 2),
-                        week_return: (Math.random() * 3 - 1),
-                        volatility: 20 + (Math.random() * 10),
-                        avg_volume: symbol === 'AAPL' ? 80000000 + (Math.random() * 10000000) :
-                                   symbol === 'MSFT' ? 30000000 + (Math.random() * 5000000) :
-                                   symbol === 'GOOGL' ? 25000000 + (Math.random() * 5000000) :
-                                   symbol === 'AMZN' ? 40000000 + (Math.random() * 8000000) :
-                                   symbol === 'TSLA' ? 100000000 + (Math.random() * 20000000) :
-                                   symbol === 'PETR4.SA' ? 50000000 + (Math.random() * 10000000) :
-                                   symbol === 'VALE3.SA' ? 40000000 + (Math.random() * 8000000) :
-                                   30000000 + (Math.random() * 6000000), // ITUB4.SA
-                        trend: Math.random() > 0.4 ? 'Alta' : 'Baixa'
-                    });
+                } else {
+                    console.warn(`Resposta inválida para ${symbol}:`, data);
+                    throw new Error(`Resposta inválida para ${symbol}`);
                 }
             } catch (error) {
                 console.error(`Erro ao processar ação ${symbol}:`, error);
+                // Não adicionar dados simulados - apenas registrar o erro
             }
         }
 
         console.log(`Dados de ${results.length} ações obtidos com sucesso`);
+
+        // Verificar se temos pelo menos alguns dados
+        if (results.length === 0) {
+            throw new Error('Não foi possível obter dados reais para nenhuma ação');
+        }
 
         // Salvar dados no cache
         CacheManager.saveToCache('stocks', results, CONFIG.cache.ttl.stocks);
@@ -1120,9 +1116,7 @@ async function fetchStocksData() {
         return results;
     } catch (error) {
         console.error('Erro ao obter dados de ações:', error);
-
-        // Em caso de erro, retornar dados simulados como fallback
-        return simulateStocksData();
+        throw error; // Propagar o erro para que o loadAllData possa usar dados simulados
     }
 }
 
