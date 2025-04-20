@@ -38,12 +38,8 @@ const ApiIntegration = {
                 return dateB - dateA;
             });
 
-            // Log the first few data points to debug
-            console.log('Historical data sample:', sortedData.slice(0, 3));
-
             // Get current price (most recent data point)
             const currentPrice = sortedData[0].close || sortedData[0].price || 0;
-            console.log('Current price:', currentPrice);
 
             // Get dates for different periods
             const now = new Date();
@@ -91,28 +87,11 @@ const ApiIntegration = {
             const startOfYearPrice = startOfYearPoint.close || startOfYearPoint.price || currentPrice;
             const oneYearAgoPrice = oneYearAgoPoint.close || oneYearAgoPoint.price || currentPrice;
 
-            // Log the prices used for calculations
-            console.log('Prices for return calculations:', {
-                current: currentPrice,
-                oneDayAgo: oneDayAgoPrice,
-                oneMonthAgo: oneMonthAgoPrice,
-                startOfYear: startOfYearPrice,
-                oneYearAgo: oneYearAgoPrice
-            });
-
             // Calculate returns
             const hours24Return = this.calculatePercentageChange(currentPrice, oneDayAgoPrice);
             const monthReturn = this.calculatePercentageChange(currentPrice, oneMonthAgoPrice);
             const ytdReturn = this.calculatePercentageChange(currentPrice, startOfYearPrice);
             const year12Return = this.calculatePercentageChange(currentPrice, oneYearAgoPrice);
-
-            // Log the calculated returns
-            console.log('Calculated returns:', {
-                hours24: hours24Return,
-                month: monthReturn,
-                ytd: ytdReturn,
-                year12: year12Return
-            });
 
             return {
                 hours24_return: hours24Return,
@@ -178,6 +157,9 @@ const ApiIntegration = {
         }
     },
 
+    // Cache for historical data to reduce API calls
+    historicalDataCache: {},
+
     /**
      * Fetch historical stock data from Yahoo Finance API
      * @param {string} symbol - Stock symbol
@@ -187,7 +169,14 @@ const ApiIntegration = {
      */
     async fetchHistoricalData(symbol, range = '1y', interval = '1d') {
         try {
-            console.log(`Fetching historical data for ${symbol} from Yahoo Finance API`);
+            // Create a cache key based on symbol, range, and interval
+            const cacheKey = `${symbol}_${range}_${interval}`;
+
+            // Check if we have cached data that's less than 1 hour old
+            if (this.historicalDataCache[cacheKey] &&
+                (Date.now() - this.historicalDataCache[cacheKey].timestamp) < 3600000) {
+                return this.historicalDataCache[cacheKey].data;
+            }
 
             // Use the configuration from CONFIG
             const yahooConfig = CONFIG.apiEndpoints.yahooFinanceConfig || {};
@@ -200,14 +189,10 @@ const ApiIntegration = {
             const normalizedRange = validRanges.includes(range) ? range : '1y';
             const normalizedInterval = validIntervals.includes(interval) ? interval : '1d';
 
-            console.log(`Using range: ${normalizedRange}, interval: ${normalizedInterval}`);
-
             // Build the API URL
             const apiUrl = CONFIG.apiEndpoints.useProxy
                 ? `${CONFIG.apiEndpoints.proxyYahooFinance}/chart/${symbol}?interval=${normalizedInterval}&range=${normalizedRange}`
                 : `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${normalizedInterval}&range=${normalizedRange}`;
-
-            console.log(`API URL: ${apiUrl}`);
 
             // Make the API call
             const response = await fetch(apiUrl);
@@ -225,7 +210,6 @@ const ApiIntegration = {
             if (!data.chart || !data.chart.result || data.chart.result.length === 0 ||
                 !data.chart.result[0].indicators || !data.chart.result[0].indicators.quote ||
                 !data.chart.result[0].indicators.quote[0]) {
-                console.error(`No historical data found for ${symbol}`, data);
                 throw new Error(`No historical data found for ${symbol}`);
             }
 
@@ -235,13 +219,8 @@ const ApiIntegration = {
             const historicalData = [];
 
             if (!timestamps || timestamps.length === 0) {
-                console.error(`No timestamps found for ${symbol}`, result);
                 throw new Error(`No timestamps found for ${symbol}`);
             }
-
-            console.log(`Retrieved ${timestamps.length} data points for ${symbol}`);
-            console.log('First timestamp:', new Date(timestamps[0] * 1000).toISOString());
-            console.log('Last timestamp:', new Date(timestamps[timestamps.length - 1] * 1000).toISOString());
 
             // Transform the data to a standard format
             for (let i = 0; i < timestamps.length; i++) {
@@ -257,6 +236,12 @@ const ApiIntegration = {
                     });
                 }
             }
+
+            // Cache the data
+            this.historicalDataCache[cacheKey] = {
+                data: historicalData,
+                timestamp: Date.now()
+            };
 
             return historicalData;
         } catch (error) {
@@ -321,6 +306,9 @@ const ApiIntegration = {
         }
     },
 
+    // Cache for Brazilian historical data
+    brazilianHistoricalDataCache: {},
+
     /**
      * Fetch historical Brazilian stock data from brapi.dev API
      * @param {string} symbol - Stock symbol
@@ -330,7 +318,14 @@ const ApiIntegration = {
      */
     async fetchBrazilianHistoricalData(symbol, range = '1y', interval = '1d') {
         try {
-            console.log(`Fetching historical data for ${symbol} from brapi.dev API`);
+            // Create a cache key based on symbol, range, and interval
+            const cacheKey = `${symbol}_${range}_${interval}`;
+
+            // Check if we have cached data that's less than 1 hour old
+            if (this.brazilianHistoricalDataCache[cacheKey] &&
+                (Date.now() - this.brazilianHistoricalDataCache[cacheKey].timestamp) < 3600000) {
+                return this.brazilianHistoricalDataCache[cacheKey].data;
+            }
 
             // Build the API URL
             const apiUrl = CONFIG.apiEndpoints.useProxy
@@ -363,6 +358,12 @@ const ApiIntegration = {
                 close: item.close,
                 volume: item.volume
             }));
+
+            // Cache the data
+            this.brazilianHistoricalDataCache[cacheKey] = {
+                data: historicalData,
+                timestamp: Date.now()
+            };
 
             return historicalData;
         } catch (error) {
@@ -439,7 +440,7 @@ const ApiIntegration = {
      * @param {string} coinId - Coin ID (e.g., 'bitcoin', 'ethereum')
      * @returns {Promise<Object>} - Cryptocurrency data
      */
-    async fetchCryptoData(coinId) {
+    async fetchCryptoCoinData(coinId) {
         try {
             console.log(`Fetching cryptocurrency data for ${coinId} from CoinGecko API`);
 
@@ -591,13 +592,12 @@ const ApiIntegration = {
      */
     async fetchStocksBatch(symbols) {
         try {
-            console.log(`Fetching batch data for ${symbols.length} stocks`);
-
             // Split symbols into US and Brazilian stocks
             const usSymbols = symbols.filter(symbol => !symbol.includes('.SA'));
             const brSymbols = symbols.filter(symbol => symbol.includes('.SA'));
 
             const results = [];
+            const failedSymbols = [];
 
             // Fetch US stocks from Finnhub
             if (usSymbols.length > 0) {
@@ -609,6 +609,7 @@ const ApiIntegration = {
                         results.push(result.value);
                     } else {
                         console.error(`Failed to fetch data for ${usSymbols[index]}:`, result.reason);
+                        failedSymbols.push(usSymbols[index]);
                     }
                 });
             }
@@ -623,13 +624,84 @@ const ApiIntegration = {
                         results.push(result.value);
                     } else {
                         console.error(`Failed to fetch data for ${brSymbols[index]}:`, result.reason);
+                        failedSymbols.push(brSymbols[index]);
                     }
                 });
             }
 
+            // Log summary of fetch results
+            if (failedSymbols.length > 0) {
+                console.warn(`Failed to fetch data for ${failedSymbols.length} symbols: ${failedSymbols.join(', ')}`);
+            }
+            console.log(`Successfully fetched data for ${results.length} out of ${symbols.length} symbols`);
+
             return results;
         } catch (error) {
             console.error('Error fetching batch stock data:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Fetch data for a single index
+     * @param {Object} index - Index information
+     * @returns {Promise<Object>} - Index data
+     */
+    async fetchIndexData(index) {
+        try {
+            // Use Yahoo Finance API for all indices
+            const historicalData = await this.fetchHistoricalData(index.symbol, '1y', '1d');
+
+            // If we have historical data, get the latest price
+            if (historicalData.length > 0) {
+                // Sort data by date (newest first)
+                const sortedData = [...historicalData].sort((a, b) => {
+                    const dateA = new Date(a.date || a.timestamp);
+                    const dateB = new Date(b.date || b.timestamp);
+                    return dateB - dateA;
+                });
+
+                const latestData = sortedData[0];
+
+                // Calculate returns from historical data
+                const returns = this.calculateReturns(sortedData);
+
+                // Use calculated returns if they seem reasonable, otherwise use fallback values
+                const ytd_return = (returns.ytd_return !== 0 && Math.abs(returns.ytd_return) < 50) ?
+                    returns.ytd_return : index.fallback_ytd;
+
+                const year12_return = (returns.year12_return !== 0 && Math.abs(returns.year12_return) < 50) ?
+                    returns.year12_return : index.fallback_year12;
+
+                return {
+                    symbol: index.symbol,
+                    name: index.name,
+                    region: index.region,
+                    last_price: latestData.close,
+                    high: latestData.high,
+                    low: latestData.low,
+                    open: latestData.open,
+                    timestamp: latestData.timestamp,
+                    hours24_return: returns.hours24_return,
+                    month_return: returns.month_return,
+                    ytd_return: ytd_return,
+                    year12_return: year12_return,
+                    historicalData: sortedData
+                };
+            } else {
+                // Fallback to hardcoded values if historical data is not available
+                return {
+                    symbol: index.symbol,
+                    name: index.name,
+                    region: index.region,
+                    last_price: 0,
+                    hours24_return: 0,
+                    month_return: 0,
+                    ytd_return: index.fallback_ytd,
+                    year12_return: index.fallback_year12
+                };
+            }
+        } catch (error) {
             throw error;
         }
     },
@@ -709,79 +781,29 @@ const ApiIntegration = {
                 }
             ];
 
-            // Fetch data for each index
-            const promises = indices.map(async (index) => {
-                try {
-                    // Use Yahoo Finance API for all indices
-                    const historicalData = await this.fetchHistoricalData(index.symbol, '1y', '1d');
+            // Fetch data for each index using Promise.allSettled for better error handling
+            const promises = indices.map(index => this.fetchIndexData(index));
+            const settledPromises = await Promise.allSettled(promises);
 
-                    // If we have historical data, get the latest price
-                    if (historicalData.length > 0) {
-                        // Sort data by date (newest first)
-                        const sortedData = [...historicalData].sort((a, b) => {
-                            const dateA = new Date(a.date || a.timestamp);
-                            const dateB = new Date(b.date || b.timestamp);
-                            return dateB - dateA;
-                        });
-
-                        const latestData = sortedData[0];
-
-                        // Calculate returns from historical data
-                        const returns = this.calculateReturns(sortedData);
-
-                        // Use calculated returns if they seem reasonable, otherwise use fallback values
-                        const ytd_return = (returns.ytd_return !== 0 && Math.abs(returns.ytd_return) < 50) ?
-                            returns.ytd_return : index.fallback_ytd;
-
-                        const year12_return = (returns.year12_return !== 0 && Math.abs(returns.year12_return) < 50) ?
-                            returns.year12_return : index.fallback_year12;
-
-                        return {
-                            symbol: index.symbol,
-                            name: index.name,
-                            region: index.region,
-                            last_price: latestData.close,
-                            high: latestData.high,
-                            low: latestData.low,
-                            open: latestData.open,
-                            timestamp: latestData.timestamp,
-                            hours24_return: returns.hours24_return,
-                            month_return: returns.month_return,
-                            ytd_return: ytd_return,
-                            year12_return: year12_return,
-                            historicalData: sortedData
-                        };
-                    } else {
-                        // Fallback to hardcoded values if historical data is not available
-                        console.warn(`No historical data available for ${index.symbol}, using fallback values`);
-                        return {
-                            symbol: index.symbol,
-                            name: index.name,
-                            region: index.region,
-                            last_price: 0,
-                            hours24_return: 0,
-                            month_return: 0,
-                            ytd_return: index.fallback_ytd,
-                            year12_return: index.fallback_year12
-                        };
-                    }
-                } catch (error) {
-                    console.error(`Error fetching data for index ${index.symbol}:`, error);
+            // Process the results
+            const results = settledPromises.map((result, index) => {
+                if (result.status === 'fulfilled') {
+                    return result.value;
+                } else {
+                    console.error(`Error fetching data for index ${indices[index].symbol}:`, result.reason);
                     // Return a placeholder with the index information
                     return {
-                        symbol: index.symbol,
-                        name: index.name,
-                        region: index.region,
+                        symbol: indices[index].symbol,
+                        name: indices[index].name,
+                        region: indices[index].region,
                         last_price: 0,
                         hours24_return: 0,
                         month_return: 0,
-                        ytd_return: index.fallback_ytd,
-                        year12_return: index.fallback_year12
+                        ytd_return: indices[index].fallback_ytd,
+                        year12_return: indices[index].fallback_year12
                     };
                 }
             });
-
-            const results = await Promise.all(promises);
             return results;
         } catch (error) {
             console.error('Error fetching indices data:', error);
@@ -906,13 +928,21 @@ const ApiIntegration = {
         }
     },
 
+    // Cache for cryptocurrency data
+    cryptoDataCache: {},
+
     /**
      * Fetch cryptocurrency data
      * @returns {Promise<Object[]>} - Array of cryptocurrency data
      */
     async fetchCryptoData() {
         try {
-            console.log('Fetching cryptocurrency data');
+            // Check if we have cached data that's less than 1 hour old
+            const cacheKey = 'crypto_data';
+            if (this.cryptoDataCache[cacheKey] &&
+                (Date.now() - this.cryptoDataCache[cacheKey].timestamp) < 3600000) {
+                return this.cryptoDataCache[cacheKey].data;
+            }
 
             // List of cryptocurrencies to fetch
             const cryptos = [
@@ -921,7 +951,7 @@ const ApiIntegration = {
             ];
 
             // Fetch data for each cryptocurrency
-            const promises = cryptos.map(crypto => this.fetchCryptoData(crypto.id));
+            const promises = cryptos.map(crypto => this.fetchCryptoCoinData(crypto.id));
             const results = await Promise.allSettled(promises);
 
             // Process results
@@ -946,12 +976,21 @@ const ApiIntegration = {
                 }
             });
 
+            // Cache the data
+            this.cryptoDataCache[cacheKey] = {
+                data: cryptoData,
+                timestamp: Date.now()
+            };
+
             return cryptoData;
         } catch (error) {
             console.error('Error fetching cryptocurrency data:', error);
             throw error;
         }
     },
+
+    // Cache for news data
+    newsDataCache: {},
 
     /**
      * Fetch news data
@@ -963,7 +1002,15 @@ const ApiIntegration = {
      */
     async fetchNewsData(options = {}) {
         try {
-            console.log('Fetching news data with options:', options);
+            // Create a cache key based on options
+            const cacheKey = JSON.stringify(options);
+
+            // Check if we have cached data that's less than 15 minutes old
+            // News data should be refreshed more frequently
+            if (this.newsDataCache[cacheKey] &&
+                (Date.now() - this.newsDataCache[cacheKey].timestamp) < 900000) {
+                return this.newsDataCache[cacheKey].data;
+            }
 
             const params = {
                 q: options.topic || 'finance',
@@ -989,10 +1036,18 @@ const ApiIntegration = {
                 }
             }));
 
-            return {
+            const result = {
                 articles: processedNews,
                 totalArticles: data.totalArticles
             };
+
+            // Cache the data
+            this.newsDataCache[cacheKey] = {
+                data: result,
+                timestamp: Date.now()
+            };
+
+            return result;
         } catch (error) {
             console.error('Error fetching news data:', error);
             throw error;
