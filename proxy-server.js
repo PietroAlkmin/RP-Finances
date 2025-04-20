@@ -36,6 +36,17 @@ app.get('/:page.html', (req, res) => {
     }
 });
 
+// Rota para verificar a saúde do servidor proxy
+app.get('/api/health', (req, res) => {
+    console.log('Health check recebido');
+    res.json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        message: 'Proxy server is running',
+        version: '1.0.0'
+    });
+});
+
 // Rota para proxy da API do Yahoo Finance
 app.get('/api/yahoo-finance/:endpoint(*)', async (req, res) => {
     try {
@@ -49,6 +60,11 @@ app.get('/api/yahoo-finance/:endpoint(*)', async (req, res) => {
             // Para requisições de gráficos
             const symbol = endpoint.replace('chart/', '');
             url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}`;
+
+            // Log para debug
+            console.log(`Yahoo Finance chart request for symbol: ${symbol}`);
+            console.log('Range:', queryParams.range);
+            console.log('Interval:', queryParams.interval);
         } else {
             // Para outras requisições
             url = `https://query1.finance.yahoo.com/v8/finance/${endpoint}`;
@@ -58,13 +74,36 @@ app.get('/api/yahoo-finance/:endpoint(*)', async (req, res) => {
         console.log('Query params:', queryParams);
 
         // Fazer a chamada à API
-        const response = await axios.get(url, { params: queryParams });
+        const response = await axios.get(url, {
+            params: queryParams,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+        });
+
+        // Log para debug
+        if (endpoint.startsWith('chart/')) {
+            const data = response.data;
+            if (data && data.chart && data.chart.result && data.chart.result.length > 0) {
+                const result = data.chart.result[0];
+                console.log('Yahoo Finance response contains valid data');
+                console.log('Timestamp count:', result.timestamp ? result.timestamp.length : 0);
+                console.log('First timestamp:', result.timestamp ? new Date(result.timestamp[0] * 1000).toISOString() : 'N/A');
+                console.log('Last timestamp:', result.timestamp ? new Date(result.timestamp[result.timestamp.length - 1] * 1000).toISOString() : 'N/A');
+            } else {
+                console.warn('Yahoo Finance response does not contain valid data');
+            }
+        }
 
         // Retornar os dados para o cliente
         res.json(response.data);
     } catch (error) {
         console.error('Error proxying Yahoo Finance request:', error.message);
-        res.status(500).json({
+        if (error.response) {
+            console.error('Response status:', error.response.status);
+            console.error('Response data:', error.response.data);
+        }
+        res.status(error.response?.status || 500).json({
             error: 'Failed to fetch data from Yahoo Finance',
             details: error.message
         });

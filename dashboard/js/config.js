@@ -87,7 +87,26 @@ const CONFIG = {
         proxyGnews: 'http://localhost:3000/api/gnews',
 
         // Configuração para usar proxy ou não
-        useProxy: true
+        useProxy: true, // Mantido como true para usar o proxy-server.js
+
+        // Configurações específicas para Yahoo Finance
+        yahooFinanceConfig: {
+            ranges: {
+                day: '1d',
+                week: '5d',
+                month: '1mo',
+                year: '1y',
+                ytd: 'ytd',
+                max: 'max'
+            },
+            intervals: {
+                minute: '1m',
+                hour: '1h',
+                day: '1d',
+                week: '1wk',
+                month: '1mo'
+            }
+        }
     },
 
     // Configuração de cache

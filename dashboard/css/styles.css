@@ -445,10 +445,28 @@ tr:nth-child(even) {
     font-weight: 500;
 }
 
-.stock-return {
+.stock-returns {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    margin-top: var(--spacing-xs);
+}
+
+.stock-return-day,
+.stock-return-month,
+.stock-return-year {
     font-weight: 600;
     font-size: 0.875rem;
-    margin-top: var(--spacing-xs);
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.return-label {
+    font-weight: normal;
+    font-size: 0.75rem;
+    color: var(--text-light);
+    margin-right: var(--spacing-xs);
 }
 
 .stock-volatility {

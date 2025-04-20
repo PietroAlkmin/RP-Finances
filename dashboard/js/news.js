@@ -12,7 +12,6 @@ window.newsData = {
     featured: null,
     sentiment: null,
     filters: {
-        source: 'all',
         language: 'all',
         topic: 'all'
     },
@@ -27,9 +26,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Atualizar data atual
     updateCurrentDate();
-
-    // Configurar tabs de notícias
-    setupNewsTabs();
 
     // Configurar botão de retry
     const retryButton = document.getElementById('retry-button');
@@ -48,12 +44,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Tentar carregar dados novamente
             setTimeout(() => {
-                window.loadNewsData(window.newsData.filters.source, window.newsData.filters.language, window.newsData.filters.topic)
+                window.loadNewsData('all', window.newsData.filters.language, window.newsData.filters.topic)
                     .finally(() => {
                         // Esconder indicador de carregamento
                         if (loadingIndicator) loadingIndicator.classList.add('hidden');
                     });
             }, 1000);
+        });
+    }
+
+    // Configurar botão de limpar cache
+    const clearCacheButton = document.getElementById('clear-cache-button');
+    if (clearCacheButton) {
+        clearCacheButton.addEventListener('click', function() {
+            // Limpar todo o cache
+            CacheManager.clearAllCache();
+
+            // Recarregar a página
+            window.location.reload();
         });
     }
 
@@ -63,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Carregar dados iniciais
     try {
-        window.loadNewsData(window.newsData.filters.source, window.newsData.filters.language, window.newsData.filters.topic)
+        window.loadNewsData('all', window.newsData.filters.language, window.newsData.filters.topic)
             .finally(() => {
                 // Esconder indicador de carregamento
                 if (loadingIndicator) loadingIndicator.classList.add('hidden');
@@ -83,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('newsDataLoaded', function() {
     console.log('Evento newsDataLoaded recebido, dados:', window.newsData);
     renderFeaturedNews();
-    renderNewsFeeds();
+    // renderNewsFeeds() - Removido pois a seção de feeds foi removida
     renderSentimentAnalysis();
 });
 
@@ -93,32 +101,39 @@ document.addEventListener('DOMContentLoaded', function() {
     if (window.newsData && window.newsData.dataLoaded) {
         console.log('Dados já carregados no DOMContentLoaded, renderizando...');
         renderFeaturedNews();
-        renderNewsFeeds();
+        // renderNewsFeeds() - Removido pois a seção de feeds foi removida
         renderSentimentAnalysis();
     }
 });
 
 /**
- * Configura os filtros de fonte, idioma e tópico
+ * Atualiza o contador de filtros ativos
+ */
+function updateActiveFiltersCount() {
+    const activeFiltersCount = document.getElementById('active-filters-count');
+    if (!activeFiltersCount) return;
+
+    let count = 0;
+
+    // Contar filtros ativos
+    if (window.newsData.filters.language !== 'all') count++;
+    if (window.newsData.filters.topic !== 'all') count++;
+
+    // Atualizar texto do contador
+    if (count > 0) {
+        activeFiltersCount.textContent = `${count} ${count === 1 ? 'filtro ativo' : 'filtros ativos'}`;
+        activeFiltersCount.style.display = 'inline-block';
+    } else {
+        activeFiltersCount.style.display = 'none';
+    }
+}
+
+/**
+ * Configura os filtros de idioma e tópico
  */
 function setupFilters() {
-    // Filtros de fonte
-    const sourceButtons = document.querySelectorAll('.source-filter .filter-button');
-    sourceButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            // Remover classe active de todos os botões
-            sourceButtons.forEach(btn => btn.classList.remove('active'));
-
-            // Adicionar classe active ao botão clicado
-            this.classList.add('active');
-
-            // Atualizar fonte selecionada
-            window.newsData.filters.source = this.dataset.source;
-
-            // Recarregar dados com nova fonte
-            window.loadNewsData(window.newsData.filters.source, window.newsData.filters.language, window.newsData.filters.topic);
-        });
-    });
+    // Inicializar contador de filtros ativos
+    updateActiveFiltersCount();
 
     // Filtros de idioma
     const languageButtons = document.querySelectorAll('.language-filter .filter-button');
@@ -133,8 +148,11 @@ function setupFilters() {
             // Atualizar idioma selecionado
             window.newsData.filters.language = this.dataset.language;
 
+            // Atualizar contador de filtros ativos
+            updateActiveFiltersCount();
+
             // Recarregar dados com novo idioma
-            window.loadNewsData(window.newsData.filters.source, window.newsData.filters.language, window.newsData.filters.topic);
+            window.loadNewsData('all', window.newsData.filters.language, window.newsData.filters.topic);
         });
     });
 
@@ -151,42 +169,26 @@ function setupFilters() {
             // Atualizar tópico selecionado
             window.newsData.filters.topic = this.dataset.topic;
 
+            // Atualizar contador de filtros ativos
+            updateActiveFiltersCount();
+
             // Recarregar dados com novo tópico
-            window.loadNewsData(window.newsData.filters.source, window.newsData.filters.language, window.newsData.filters.topic);
+            window.loadNewsData('all', window.newsData.filters.language, window.newsData.filters.topic);
         });
     });
 }
 
-/**
- * Configura as abas de notícias
- */
-function setupNewsTabs() {
-    const tabButtons = document.querySelectorAll('.news-tabs .tab-button');
-    const tabContents = document.querySelectorAll('.news-content .tab-content');
-
-    tabButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            // Remover classe active de todos os botões e conteúdos
-            tabButtons.forEach(btn => btn.classList.remove('active'));
-            tabContents.forEach(content => content.classList.remove('active'));
-
-            // Adicionar classe active ao botão clicado
-            this.classList.add('active');
-
-            // Mostrar conteúdo correspondente
-            const tabId = this.dataset.tab;
-            document.getElementById(`${tabId}-news`).classList.add('active');
-        });
-    });
-}
+// Função setupNewsTabs removida pois não é mais necessária
 
 /**
  * Atualiza a data no cabeçalho
+ * Nota: Esta função foi mantida para compatibilidade, mas não faz mais nada
+ * já que o cabeçalho foi removido
  */
 function updateCurrentDate() {
-    const dateElement = document.getElementById('current-date');
-    const currentDate = new Date();
-    dateElement.textContent = `Atualizado em: ${currentDate.toLocaleDateString('pt-BR')} às ${currentDate.toLocaleTimeString('pt-BR')}`;
+    // Esta função foi mantida para compatibilidade, mas não faz mais nada
+    console.log('Função updateCurrentDate chamada, mas não faz mais nada pois o cabeçalho foi removido');
+    return;
 }
 
 /**
@@ -237,11 +239,21 @@ function renderFeaturedNews() {
         const sourceIcon = getSourceIcon(news.source);
         const sentimentClass = getSentimentClass(news.sentiment);
 
+        // Obter o nome da fonte para exibição
+        let sourceName = news.source;
+        if (news.sourceName) {
+            sourceName = news.sourceName;
+        } else if (CONFIG.newsSources[news.source]) {
+            sourceName = CONFIG.newsSources[news.source].name;
+        } else if (news.originalSource) {
+            sourceName = news.originalSource;
+        }
+
         featuredHTML += `
             <div class="featured-news-item ${sentimentClass}">
                 <div class="news-header">
                     <div class="news-source">
-                        ${sourceIcon} ${getSourceName(news.source)}
+                        ${sourceIcon} ${sourceName}
                     </div>
                     <div class="news-time">${timeAgo}</div>
                 </div>
@@ -268,191 +280,24 @@ function renderFeaturedNews() {
 
 /**
  * Renderiza os feeds de notícias
+ * Nota: Esta função foi mantida para compatibilidade, mas não faz mais nada
+ * já que a seção de feeds foi removida
  */
 function renderNewsFeeds() {
-    console.log('Renderizando feeds de notícias...', window.newsData);
-
-    if (!window.newsData.financial || !window.newsData.dataLoaded) {
-        console.warn('Dados de notícias não disponíveis para renderização dos feeds');
-
-        // Mostrar mensagem de erro em cada feed
-        const feedContainers = document.querySelectorAll('.news-feed');
-        feedContainers.forEach(container => {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">📰</div>
-                    <h3>Sem notícias disponíveis</h3>
-                    <p>Não foi possível carregar as notícias para este feed.</p>
-                    <button class="retry-news-feed btn btn-primary">Tentar Novamente</button>
-                </div>
-            `;
-        });
-
-        // Adicionar evento para tentar novamente em todos os botões
-        document.querySelectorAll('.retry-news-feed').forEach(button => {
-            button.addEventListener('click', function() {
-                // Limpar cache de notícias
-                CacheManager.clearCacheByType('news');
-                // Recarregar dados
-                window.loadNewsData(window.newsData.filters.source, window.newsData.filters.language, window.newsData.filters.topic);
-            });
-        });
-
-        return;
-    }
-
-    // Agrupar notícias por fonte
-    const newsBySource = groupNewsBySource(window.newsData.financial);
-
-    // Renderizar cada feed
-    Object.keys(newsBySource).forEach(source => {
-        renderNewsFeed(source, newsBySource[source]);
-    });
+    console.log('Função renderNewsFeeds chamada, mas não faz mais nada pois a seção foi removida');
+    // Esta função foi mantida para compatibilidade, mas não faz mais nada
+    return;
 }
 
 /**
  * Renderiza um feed de notícias específico
+ * Nota: Esta função foi mantida para compatibilidade, mas não faz mais nada
+ * já que a seção de feeds foi removida
  */
 function renderNewsFeed(source, news) {
-    // Criar um feed para 'other' se não existir
-    if (source === 'other' && !document.getElementById('other-feed')) {
-        // Adicionar tab para 'other'
-        const tabsContainer = document.querySelector('.news-tabs');
-        if (tabsContainer && !document.querySelector('.tab-button[data-tab="other"]')) {
-            const otherTab = document.createElement('button');
-            otherTab.type = 'button';
-            otherTab.className = 'tab-button';
-            otherTab.dataset.tab = 'other';
-            otherTab.textContent = 'Outras Fontes';
-            tabsContainer.appendChild(otherTab);
-
-            // Adicionar event listener
-            otherTab.addEventListener('click', function() {
-                // Remover classe active de todos os botões
-                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-                // Adicionar classe active ao botão clicado
-                this.classList.add('active');
-
-                // Esconder todos os conteúdos
-                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-                // Mostrar conteúdo correspondente
-                document.getElementById('other-news').classList.add('active');
-            });
-        }
-
-        // Adicionar conteúdo para 'other'
-        const newsContent = document.querySelector('.news-content');
-        if (newsContent) {
-            const otherContent = document.createElement('div');
-            otherContent.className = 'tab-content';
-            otherContent.id = 'other-news';
-
-            const otherFeed = document.createElement('div');
-            otherFeed.className = 'news-feed';
-            otherFeed.id = 'other-feed';
-
-            otherContent.appendChild(otherFeed);
-            newsContent.appendChild(otherContent);
-        }
-    }
-
-    const feedContainer = document.getElementById(`${source}-feed`);
-    if (!feedContainer) return;
-
-    let feedHTML = '';
-
-    if (news.length === 0) {
-        feedHTML = `<div class="no-news">Nenhuma notícia disponível para os filtros selecionados.</div>`;
-    } else {
-        news.forEach(item => {
-            const publishedDate = new Date(item.publishedAt);
-            const timeAgo = getTimeAgo(publishedDate);
-            const sentimentClass = getSentimentClass(item.sentiment);
-
-            // Obter o nome da fonte para exibição
-            let sourceName = item.source;
-            if (item.sourceName) {
-                sourceName = item.sourceName;
-            } else if (CONFIG.newsSources[item.source]) {
-                sourceName = CONFIG.newsSources[item.source].name;
-            } else if (item.originalSource) {
-                sourceName = item.originalSource;
-            }
-
-            // Verificar se há imagem
-            const hasImage = item.urlToImage && item.urlToImage.startsWith('http');
-
-            feedHTML += `
-                <div class="news-item ${sentimentClass}">
-                    <div class="news-meta">
-                        <div class="news-time">${timeAgo}</div>
-                        <div class="news-source">Fonte: ${sourceName}</div>
-                    </div>
-                    ${hasImage ? `<div class="news-image"><img src="${item.urlToImage}" alt="${item.title}" /></div>` : ''}
-                    <h3 class="news-title">
-                        <a href="${item.url}" target="_blank" rel="noopener noreferrer">
-                            ${item.title}
-                        </a>
-                    </h3>
-                    <p class="news-description">${item.description}</p>
-                    ${item.author && item.author !== 'Autor desconhecido' ? `<div class="news-author">Por: ${item.author}</div>` : ''}
-                    <div class="news-footer">
-                        <div class="news-topics">
-                            ${renderTopics(item.topics)}
-                        </div>
-                        <div class="news-metrics">
-                            <div class="news-impact tooltip">
-                                Impacto: <span class="impact-score">${item.impactScore}/10</span>
-                                <span class="tooltip-text">
-                                    <strong>Pontuação de Impacto:</strong> Indica o potencial impacto desta notícia no mercado.<br>
-                                    <br>
-                                    <strong>Como é calculado:</strong><br>
-                                    - Base neutra: 5/10<br>
-                                    - Sentimento positivo: +2 pontos<br>
-                                    - Sentimento negativo: -2 pontos<br>
-                                    - Tópico Ações: +1 ponto<br>
-                                    - Tópico Cripto: +1.5 pontos<br>
-                                    - Tópico Economia: +0.5 pontos<br>
-                                    - Variação aleatória: ±1 ponto<br>
-                                    <br>
-                                    Quanto maior a pontuação, maior o potencial impacto no mercado.
-                                </span>
-                            </div>
-                            <div class="news-sentiment tooltip">
-                                Sentimento: <span class="sentiment-${item.sentiment}">${getSentimentLabel(item.sentiment)}</span>
-                                ${item.positiveScore || item.negativeScore ? `<span class="sentiment-score">(+${item.positiveScore || 0}/-${item.negativeScore || 0})</span>` : ''}
-                                <span class="tooltip-text">
-                                    <strong>Análise de Sentimento:</strong> Avaliação do tom emocional da notícia.<br>
-                                    <br>
-                                    <strong>Pontuação detalhada:</strong><br>
-                                    - Palavras positivas: ${item.positiveScore || 0}<br>
-                                    - Palavras negativas: ${item.negativeScore || 0}<br>
-                                    - Balanço geral: ${(item.sentimentScore || 0) > 0 ? '+' + (item.sentimentScore || 0) : (item.sentimentScore || 0)}<br>
-                                    <br>
-                                    Esta análise é baseada na contagem de palavras com carga emocional positiva ou negativa no texto da notícia.
-                                </span>
-                            </div>
-                            <div class="news-reaction tooltip">
-                                Reação do mercado: <span class="reaction-${item.marketReaction}">${getReactionLabel(item.marketReaction)}</span>
-                                <span class="tooltip-text">
-                                    <strong>Reação do Mercado:</strong> Indica como o mercado reagiu a esta notícia.<br>
-                                    <br>
-                                    <strong>Como é determinado:</strong><br>
-                                    - Notícias positivas: 80% de chance de reação positiva<br>
-                                    - Notícias negativas: 80% de chance de reação negativa<br>
-                                    - Notícias neutras: 50% de chance para cada lado<br>
-                                    <br>
-                                    Isso simula como o mercado nem sempre reage de forma previsível às notícias.
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-    }
-
-    feedContainer.innerHTML = feedHTML;
+    console.log('Função renderNewsFeed chamada, mas não faz mais nada pois a seção foi removida');
+    // Esta função foi mantida para compatibilidade, mas não faz mais nada
+    return;
 }
 
 /**
@@ -740,10 +585,30 @@ function getSourceName(source) {
         'bbc': 'BBC News',
         'forbes': 'Forbes',
         'g1': 'G1 Economia',
-        'investing': 'Investing.com'
+        'investing': 'Investing.com',
+        'cnbc': 'CNBC',
+        'bloomberg': 'Bloomberg',
+        'reuters': 'Reuters',
+        'wsj': 'Wall Street Journal',
+        'ft': 'Financial Times',
+        'yahoo': 'Yahoo Finance',
+        'other': 'Outras Fontes'
     };
 
-    return sourceNames[source] || source;
+    // Se a fonte não estiver no mapeamento, formatar o nome para exibição
+    if (sourceNames[source]) {
+        return sourceNames[source];
+    }
+
+    // Tentar formatar o nome da fonte se não estiver no mapeamento
+    if (source && typeof source === 'string') {
+        // Capitalizar primeira letra de cada palavra
+        return source.split('-').map(word =>
+            word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+    }
+
+    return 'Fonte Desconhecida';
 }
 
 /**
@@ -755,9 +620,17 @@ function getSourceIcon(source) {
         'bbc': '🌐',
         'forbes': '💼',
         'g1': '🇧🇷',
-        'investing': '📈'
+        'investing': '📈',
+        'cnbc': '📺',
+        'bloomberg': '💹',
+        'reuters': '🌎',
+        'wsj': '📄',
+        'ft': '📰',
+        'yahoo': '📱',
+        'other': '📰'
     };
 
+    // Se a fonte não estiver no mapeamento, retornar o ícone padrão de notícias
     return sourceIcons[source] || '📰';
 }
 
