@@ -149,7 +149,7 @@ function renderMarketSummary() {
     let summaryHTML = `
         <div class="summary-grid">
             <div class="summary-item">
-                <div class="summary-label">Melhor Índice</div>
+                <div class="summary-label"><i class="fas fa-chart-line"></i> Melhor Índice</div>
                 <div class="summary-value positive">
                     ${bestIndexName}
                     <span class="summary-detail">${formatPercentage(bestIndexReturn)}</span>
@@ -157,7 +157,7 @@ function renderMarketSummary() {
             </div>
 
             <div class="summary-item">
-                <div class="summary-label">Pior Índice</div>
+                <div class="summary-label"><i class="fas fa-chart-line"></i> Pior Índice</div>
                 <div class="summary-value negative">
                     ${worstIndexName}
                     <span class="summary-detail">${formatPercentage(worstIndexReturn)}</span>
@@ -165,7 +165,7 @@ function renderMarketSummary() {
             </div>
 
             <div class="summary-item">
-                <div class="summary-label">Melhor Ação</div>
+                <div class="summary-label"><i class="fas fa-arrow-trend-up"></i> Melhor Ação</div>
                 <div class="summary-value positive">
                     ${bestStockName}
                     <span class="summary-detail">${formatPercentage(bestStockReturn)}</span>
@@ -173,7 +173,7 @@ function renderMarketSummary() {
             </div>
 
             <div class="summary-item">
-                <div class="summary-label">Pior Ação</div>
+                <div class="summary-label"><i class="fas fa-arrow-trend-down"></i> Pior Ação</div>
                 <div class="summary-value negative">
                     ${worstStockName}
                     <span class="summary-detail">${formatPercentage(worstStockReturn)}</span>
@@ -181,7 +181,7 @@ function renderMarketSummary() {
             </div>
 
             <div class="summary-item">
-                <div class="summary-label">Maior Volatilidade</div>
+                <div class="summary-label"><i class="fas fa-bolt"></i> Maior Volatilidade</div>
                 <div class="summary-value">
                     ${volatileStockName}
                     <span class="summary-detail">${volatileStockDisplay}</span>
@@ -189,7 +189,7 @@ function renderMarketSummary() {
             </div>
 
             <div class="summary-item">
-                <div class="summary-label">Melhor Região</div>
+                <div class="summary-label"><i class="fas fa-globe"></i> Melhor Região</div>
                 <div class="summary-value positive">
                     ${getRegionName(bestRegionCode)}
                     <span class="summary-detail">${formatPercentage(bestRegionReturn)}</span>
@@ -197,7 +197,7 @@ function renderMarketSummary() {
             </div>
 
             <div class="summary-item">
-                <div class="summary-label">Melhor Setor</div>
+                <div class="summary-label"><i class="fas fa-building"></i> Melhor Setor</div>
                 <div class="summary-value positive">
                     ${bestSectorName}
                     <span class="summary-detail">${formatPercentage(bestSectorReturn)}</span>
@@ -205,7 +205,7 @@ function renderMarketSummary() {
             </div>
 
             <div class="summary-item">
-                <div class="summary-label">Total Monitorado</div>
+                <div class="summary-label"><i class="fas fa-chart-pie"></i> Total Monitorado</div>
                 <div class="summary-value">
                     ${indicesCount} Índices
                     <span class="summary-detail">${stocksCount} Ações</span>
