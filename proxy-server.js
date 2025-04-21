@@ -290,8 +290,8 @@ app.get('/api/finnhub/:endpoint(*)', async (req, res) => {
 
 // Pluggy API Configuration
 const PLUGGY_API_URL = 'https://api.pluggy.ai'; // Production API URL
-const PLUGGY_CLIENT_ID = process.env.PLUGGY_CLIENT_ID || 'bf9fde21-ffd6-4b27-a800-987e9ea0c6b0'; // Client ID
-const PLUGGY_CLIENT_SECRET = process.env.PLUGGY_CLIENT_SECRET || 'cded684a-f9bf-4a56-94d9-9af77fc61d22'; // Client Secret
+const PLUGGY_CLIENT_ID = process.env.PLUGGY_CLIENT_ID || '9b51ba06-7461-420c-a79c-1c58bcfb3127'; // Client ID
+const PLUGGY_CLIENT_SECRET = process.env.PLUGGY_CLIENT_SECRET || 'a576c67a-ce3b-4991-8419-486bc95bf2ef'; // Client Secret
 
 // Flag to check if Pluggy credentials are configured
 const isPluggyConfigured = true; // We now have valid credentials
