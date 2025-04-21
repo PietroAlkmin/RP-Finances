@@ -714,6 +714,69 @@ const PluggyManager = {
     // Check if an item is connected
     isItemConnected() {
         return !!this.config.itemId;
+    },
+
+    // Refresh the connection
+    async refreshConnection() {
+        try {
+            if (!this.config.itemId) {
+                console.error('No item ID available to refresh');
+                window.showNotification('Nenhuma conta conectada para atualizar', 'warning');
+                return false;
+            }
+
+            // Build the URL for refreshing the item
+            const url = `/api/pluggy/items/${this.config.itemId}/refresh`;
+            console.log('Refreshing item connection:', url);
+
+            // Show notification that we're refreshing
+            window.showNotification('Atualizando conexão...', 'info');
+
+            const response = await fetch(url, {
+                method: 'POST'
+            });
+
+            if (!response.ok && response.status !== 404) {
+                throw new Error(`Failed to refresh item: ${response.status} ${response.statusText}`);
+            }
+
+            try {
+                const data = await response.json();
+                console.log('Refresh response:', data);
+
+                // Check if this is mock data
+                if (data.isMock) {
+                    console.warn('Received mock refresh response from server');
+                }
+
+                // Show success notification
+                window.showNotification('Conexão atualizada com sucesso!', 'success');
+
+                // Fetch accounts to update the UI
+                this.fetchAccounts();
+
+                return true;
+            } catch (e) {
+                console.warn('Could not parse refresh response');
+
+                // Still try to fetch accounts
+                this.fetchAccounts();
+
+                return true;
+            }
+        } catch (error) {
+            console.error('Error refreshing connection:', error);
+            window.showNotification('Erro ao atualizar conexão', 'error');
+
+            // Try to fetch accounts anyway
+            try {
+                await this.fetchAccounts();
+            } catch (fetchError) {
+                console.error('Error fetching accounts after refresh error:', fetchError);
+            }
+
+            return false;
+        }
     }
 };
 

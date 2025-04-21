@@ -15,6 +15,12 @@
     border-bottom: 1px solid #e2e8f0;
 }
 
+.open-finance-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
 .open-finance-header h2 {
     display: flex;
     align-items: center;
@@ -370,6 +376,46 @@
 
 .connect-bank-btn i {
     margin-right: 8px;
+}
+
+.refresh-open-finance-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    background-color: #f8fafc;
+    color: #4a6cf7;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.refresh-open-finance-btn:hover {
+    background-color: #edf2f7;
+    transform: translateY(-2px);
+}
+
+.refresh-open-finance-btn:active {
+    transform: translateY(0);
+}
+
+.refresh-open-finance-btn i {
+    margin-right: 8px;
+}
+
+.refresh-open-finance-btn.rotating i {
+    animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .account-badge {

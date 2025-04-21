@@ -74,6 +74,12 @@ class PortfolioManager {
             emptyConnectBtn.addEventListener('click', () => this.connectBank());
         }
 
+        // Refresh Open Finance button
+        const refreshOpenFinanceBtn = document.getElementById('refresh-open-finance-btn');
+        if (refreshOpenFinanceBtn) {
+            refreshOpenFinanceBtn.addEventListener('click', () => this.refreshOpenFinance());
+        }
+
         // Close asset modal
         const closeAssetModal = document.getElementById('close-asset-modal');
         if (closeAssetModal) {
@@ -1037,6 +1043,67 @@ class PortfolioManager {
             console.error('Pluggy Manager not initialized');
             window.showNotification('Erro ao inicializar o Pluggy Manager', 'error');
         }
+    },
+
+    /**
+     * Refresh the Open Finance connection
+     */
+    refreshOpenFinance() {
+        // Add rotating class to the button
+        const refreshBtn = document.getElementById('refresh-open-finance-btn');
+        if (refreshBtn) {
+            refreshBtn.classList.add('rotating');
+
+            // Disable the button while refreshing
+            refreshBtn.disabled = true;
+        }
+
+        if (window.PluggyManager) {
+            // Check if an item is connected
+            if (!window.PluggyManager.isItemConnected()) {
+                window.showNotification('Nenhuma conta conectada para atualizar', 'warning');
+
+                // Remove rotating class and re-enable button
+                if (refreshBtn) {
+                    refreshBtn.classList.remove('rotating');
+                    refreshBtn.disabled = false;
+                }
+
+                return;
+            }
+
+            // Refresh the connection
+            window.PluggyManager.refreshConnection()
+                .then(success => {
+                    if (success) {
+                        console.log('Connection refreshed successfully');
+                    } else {
+                        console.warn('Connection refresh returned false');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error refreshing connection:', error);
+                    window.showNotification('Erro ao atualizar conexão', 'error');
+                })
+                .finally(() => {
+                    // Remove rotating class and re-enable button after 1 second
+                    setTimeout(() => {
+                        if (refreshBtn) {
+                            refreshBtn.classList.remove('rotating');
+                            refreshBtn.disabled = false;
+                        }
+                    }, 1000);
+                });
+        } else {
+            console.error('Pluggy Manager not initialized');
+            window.showNotification('Erro ao inicializar o Pluggy Manager', 'error');
+
+            // Remove rotating class and re-enable button
+            if (refreshBtn) {
+                refreshBtn.classList.remove('rotating');
+                refreshBtn.disabled = false;
+            }
+        }
     }
 
     /**
@@ -1152,6 +1219,9 @@ class PortfolioManager {
      */
     renderConnectedAccounts(accountsData) {
         console.log('Rendering connected accounts with data:', accountsData);
+
+        // Store the accounts data for later use
+        this.lastAccountsData = accountsData;
 
         // Get the open finance content container
         const openFinanceContent = document.getElementById('open-finance-content');
@@ -1542,8 +1612,83 @@ class PortfolioManager {
      */
     viewTransactions(accountId) {
         console.log('View transactions for account:', accountId);
-        // This would typically open a modal or navigate to a transactions page
-        window.showNotification('Funcionalidade em desenvolvimento', 'info');
+
+        // Store the current account ID
+        this.currentAccountId = accountId;
+
+        // Get the modal and related elements
+        const modal = document.getElementById('transactions-modal');
+        const accountNameElement = document.getElementById('transaction-account-name');
+        const accountBalanceElement = document.getElementById('transaction-account-balance');
+        const tableBody = document.getElementById('transactions-table-body');
+        const loadingIndicator = document.getElementById('transactions-loading');
+        const emptyState = document.getElementById('transactions-empty');
+        const paginationElement = document.getElementById('transactions-pagination');
+
+        // Clear previous data
+        tableBody.innerHTML = '';
+
+        // Initialize pagination state
+        this.transactionsPagination = {
+            currentPage: 1,
+            totalPages: 1,
+            pageSize: 50,
+            totalTransactions: 0
+        };
+
+        // Initialize filters
+        this.transactionsFilters = {
+            period: '30', // Default to last 30 days
+            startDate: null,
+            endDate: null,
+            type: 'all'
+        };
+
+        // Set default dates for the date inputs
+        const today = new Date();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+
+        document.getElementById('transaction-start-date').value = thirtyDaysAgo.toISOString().split('T')[0];
+        document.getElementById('transaction-end-date').value = today.toISOString().split('T')[0];
+
+        // Reset period selector
+        document.getElementById('transaction-period').value = '30';
+        document.getElementById('transaction-type').value = 'all';
+        document.getElementById('transaction-search').value = '';
+
+        // Hide custom date range by default
+        document.getElementById('custom-date-range').classList.add('hidden');
+
+        // Find the account in the accounts data
+        let account = null;
+        const accountsData = this.lastAccountsData;
+
+        if (accountsData && accountsData.results) {
+            account = accountsData.results.find(acc => acc.id === accountId);
+        }
+
+        if (account) {
+            // Set account name and balance
+            accountNameElement.textContent = account.name;
+            accountBalanceElement.textContent = `R$ ${this.formatCurrency(account.balance)}`;
+        } else {
+            accountNameElement.textContent = 'Conta';
+            accountBalanceElement.textContent = 'R$ 0,00';
+        }
+
+        // Show the modal
+        modal.classList.remove('hidden');
+
+        // Show loading indicator
+        loadingIndicator.classList.remove('hidden');
+        emptyState.classList.add('hidden');
+
+        // Fetch transactions
+        this.fetchAndRenderTransactions(accountId);
+
+        // Set up event listeners for the modal
+        this.setupTransactionsModalEventListeners();
     }
 
     /**
@@ -1671,6 +1816,523 @@ class PortfolioManager {
         }
 
         return number;
+    }
+
+    /**
+     * Set up event listeners for the transactions modal
+     */
+    setupTransactionsModalEventListeners() {
+        // Close button
+        const closeBtn = document.getElementById('close-transactions-modal');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => this.hideTransactionsModal());
+        }
+
+        // Close button in footer
+        const closeFooterBtn = document.getElementById('close-transactions-btn');
+        if (closeFooterBtn) {
+            closeFooterBtn.addEventListener('click', () => this.hideTransactionsModal());
+        }
+
+        // Period selector
+        const periodSelector = document.getElementById('transaction-period');
+        if (periodSelector) {
+            periodSelector.addEventListener('change', (e) => {
+                const customDateRange = document.getElementById('custom-date-range');
+                if (e.target.value === 'custom') {
+                    customDateRange.classList.remove('hidden');
+                } else {
+                    customDateRange.classList.add('hidden');
+                    this.transactionsFilters.period = e.target.value;
+                    this.transactionsFilters.startDate = null;
+                    this.transactionsFilters.endDate = null;
+                }
+            });
+        }
+
+        // Apply filters button
+        const applyFiltersBtn = document.getElementById('apply-filters-btn');
+        if (applyFiltersBtn) {
+            applyFiltersBtn.addEventListener('click', () => {
+                // Get filter values
+                const period = document.getElementById('transaction-period').value;
+                const type = document.getElementById('transaction-type').value;
+
+                // Update filters
+                this.transactionsFilters.period = period;
+                this.transactionsFilters.type = type;
+
+                // If custom period, get date range
+                if (period === 'custom') {
+                    const startDate = document.getElementById('transaction-start-date').value;
+                    const endDate = document.getElementById('transaction-end-date').value;
+
+                    if (startDate && endDate) {
+                        this.transactionsFilters.startDate = startDate;
+                        this.transactionsFilters.endDate = endDate;
+                    }
+                } else {
+                    this.transactionsFilters.startDate = null;
+                    this.transactionsFilters.endDate = null;
+                }
+
+                // Reset pagination
+                this.transactionsPagination.currentPage = 1;
+
+                // Fetch transactions with new filters
+                this.fetchAndRenderTransactions(this.currentAccountId);
+            });
+        }
+
+        // Search input
+        const searchInput = document.getElementById('transaction-search');
+        if (searchInput) {
+            searchInput.addEventListener('input', this.debounce(() => {
+                // Filter transactions based on search term
+                this.filterTransactionsBySearch();
+            }, 300));
+        }
+
+        // Pagination buttons
+        const prevPageBtn = document.getElementById('prev-page-btn');
+        const nextPageBtn = document.getElementById('next-page-btn');
+
+        if (prevPageBtn) {
+            prevPageBtn.addEventListener('click', () => {
+                if (this.transactionsPagination.currentPage > 1) {
+                    this.transactionsPagination.currentPage--;
+                    this.fetchAndRenderTransactions(this.currentAccountId);
+                }
+            });
+        }
+
+        if (nextPageBtn) {
+            nextPageBtn.addEventListener('click', () => {
+                if (this.transactionsPagination.currentPage < this.transactionsPagination.totalPages) {
+                    this.transactionsPagination.currentPage++;
+                    this.fetchAndRenderTransactions(this.currentAccountId);
+                }
+            });
+        }
+
+        // Export button
+        const exportBtn = document.getElementById('export-transactions-btn');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => this.exportTransactions());
+        }
+
+        // Close modal when clicking outside
+        const modal = document.getElementById('transactions-modal');
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    this.hideTransactionsModal();
+                }
+            });
+        }
+    }
+
+    /**
+     * Hide the transactions modal
+     */
+    hideTransactionsModal() {
+        const modal = document.getElementById('transactions-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+
+        // Clear current account ID
+        this.currentAccountId = null;
+    }
+
+    /**
+     * Fetch and render transactions for an account
+     * @param {string} accountId - The account ID
+     */
+    fetchAndRenderTransactions(accountId) {
+        if (!accountId) return;
+
+        // Get elements
+        const tableBody = document.getElementById('transactions-table-body');
+        const loadingIndicator = document.getElementById('transactions-loading');
+        const emptyState = document.getElementById('transactions-empty');
+        const currentPageElement = document.getElementById('current-page');
+        const totalPagesElement = document.getElementById('total-pages');
+        const prevPageBtn = document.getElementById('prev-page-btn');
+        const nextPageBtn = document.getElementById('next-page-btn');
+
+        // Show loading indicator
+        loadingIndicator.classList.remove('hidden');
+        emptyState.classList.add('hidden');
+
+        // Clear table
+        tableBody.innerHTML = '';
+
+        // Prepare options for fetching transactions
+        const options = {
+            page: this.transactionsPagination.currentPage,
+            pageSize: this.transactionsPagination.pageSize
+        };
+
+        // Add date filters if needed
+        if (this.transactionsFilters.startDate && this.transactionsFilters.endDate) {
+            options.from = this.transactionsFilters.startDate;
+            options.to = this.transactionsFilters.endDate;
+        } else if (this.transactionsFilters.period !== 'all') {
+            // Calculate date range based on period
+            const today = new Date();
+            const startDate = new Date();
+            startDate.setDate(today.getDate() - parseInt(this.transactionsFilters.period));
+
+            options.from = startDate.toISOString().split('T')[0];
+            options.to = today.toISOString().split('T')[0];
+        }
+
+        // Fetch transactions
+        if (window.PluggyManager) {
+            window.PluggyManager.fetchTransactions(accountId, options)
+                .then(data => {
+                    console.log('Transactions fetched:', data);
+
+                    // Store the transactions data
+                    this.lastTransactionsData = data;
+
+                    // Update pagination info
+                    if (data.total) {
+                        this.transactionsPagination.totalTransactions = data.total;
+                        this.transactionsPagination.totalPages = data.totalPages || Math.ceil(data.total / this.transactionsPagination.pageSize);
+                    } else {
+                        this.transactionsPagination.totalTransactions = data.results ? data.results.length : 0;
+                        this.transactionsPagination.totalPages = 1;
+                    }
+
+                    // Update pagination UI
+                    currentPageElement.textContent = this.transactionsPagination.currentPage;
+                    totalPagesElement.textContent = this.transactionsPagination.totalPages;
+
+                    // Enable/disable pagination buttons
+                    prevPageBtn.disabled = this.transactionsPagination.currentPage <= 1;
+                    nextPageBtn.disabled = this.transactionsPagination.currentPage >= this.transactionsPagination.totalPages;
+
+                    // Hide loading indicator
+                    loadingIndicator.classList.add('hidden');
+
+                    // Check if we have transactions
+                    if (!data.results || data.results.length === 0) {
+                        emptyState.classList.remove('hidden');
+                        return;
+                    }
+
+                    // Filter transactions by type if needed
+                    let transactions = data.results;
+                    if (this.transactionsFilters.type !== 'all') {
+                        transactions = transactions.filter(tx => tx.type === this.transactionsFilters.type);
+                    }
+
+                    // If we have no transactions after filtering
+                    if (transactions.length === 0) {
+                        emptyState.classList.remove('hidden');
+                        return;
+                    }
+
+                    // Group transactions by date
+                    const groupedTransactions = this.groupTransactionsByDate(transactions);
+
+                    // Render transactions
+                    this.renderTransactionsTable(groupedTransactions);
+
+                    // Apply search filter if there's a search term
+                    const searchTerm = document.getElementById('transaction-search').value.trim();
+                    if (searchTerm) {
+                        this.filterTransactionsBySearch();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching transactions:', error);
+
+                    // Hide loading indicator
+                    loadingIndicator.classList.add('hidden');
+
+                    // Show empty state with error message
+                    emptyState.innerHTML = `
+                        <i class="fas fa-exclamation-circle"></i>
+                        <p>Erro ao carregar transações</p>
+                        <p>Tente novamente mais tarde</p>
+                    `;
+                    emptyState.classList.remove('hidden');
+
+                    // Show notification
+                    window.showNotification('Erro ao carregar transações. Tente novamente mais tarde.', 'error');
+                });
+        } else {
+            // If PluggyManager is not available, show error
+            loadingIndicator.classList.add('hidden');
+            emptyState.innerHTML = `
+                <i class="fas fa-exclamation-circle"></i>
+                <p>Erro ao carregar transações</p>
+                <p>Serviço indisponível</p>
+            `;
+            emptyState.classList.remove('hidden');
+        }
+    }
+
+    /**
+     * Group transactions by date
+     * @param {Array} transactions - The transactions to group
+     * @returns {Object} - Transactions grouped by date
+     */
+    groupTransactionsByDate(transactions) {
+        const grouped = {};
+
+        transactions.forEach(transaction => {
+            // Get date part only
+            const date = transaction.date.split('T')[0];
+
+            if (!grouped[date]) {
+                grouped[date] = [];
+            }
+
+            grouped[date].push(transaction);
+        });
+
+        return grouped;
+    }
+
+    /**
+     * Render transactions table
+     * @param {Object} groupedTransactions - Transactions grouped by date
+     */
+    renderTransactionsTable(groupedTransactions) {
+        const tableBody = document.getElementById('transactions-table-body');
+
+        // Clear table
+        tableBody.innerHTML = '';
+
+        // Sort dates in descending order (newest first)
+        const sortedDates = Object.keys(groupedTransactions).sort((a, b) => new Date(b) - new Date(a));
+
+        // Render each date group
+        sortedDates.forEach(date => {
+            // Add date header
+            const dateHeader = document.createElement('tr');
+            dateHeader.className = 'date-header';
+            dateHeader.innerHTML = `<td colspan="5">${this.formatDate(date)}</td>`;
+            tableBody.appendChild(dateHeader);
+
+            // Sort transactions within the day (newest first, or by ID if same time)
+            const sortedTransactions = groupedTransactions[date].sort((a, b) => {
+                const dateA = new Date(a.date);
+                const dateB = new Date(b.date);
+                return dateB - dateA || b.id.localeCompare(a.id);
+            });
+
+            // Add transactions for this date
+            sortedTransactions.forEach(transaction => {
+                const row = document.createElement('tr');
+                row.className = 'transaction-row';
+                row.dataset.id = transaction.id;
+
+                // Format date to show time
+                const dateObj = new Date(transaction.date);
+                const timeStr = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+                // Determine amount class
+                const amountClass = transaction.type === 'CREDIT' ? 'positive' : 'negative';
+
+                // Format amount with sign
+                const amount = transaction.amount;
+                const formattedAmount = transaction.type === 'CREDIT' ?
+                    `+${this.formatCurrency(Math.abs(amount))}` :
+                    `-${this.formatCurrency(Math.abs(amount))}`;
+
+                // Get category display
+                const category = transaction.category || 'Não categorizado';
+
+                // Get balance if available
+                const balance = transaction.balance !== undefined ?
+                    `R$ ${this.formatCurrency(transaction.balance)}` :
+                    '';
+
+                row.innerHTML = `
+                    <td class="transaction-date">${timeStr}</td>
+                    <td class="transaction-description">${transaction.description}</td>
+                    <td><span class="transaction-category">${category}</span></td>
+                    <td class="transaction-amount ${amountClass}">R$ ${formattedAmount}</td>
+                    <td class="transaction-balance">${balance}</td>
+                `;
+
+                tableBody.appendChild(row);
+            });
+        });
+    }
+
+    /**
+     * Filter transactions by search term
+     */
+    filterTransactionsBySearch() {
+        const searchTerm = document.getElementById('transaction-search').value.trim().toLowerCase();
+        const rows = document.querySelectorAll('.transaction-row');
+        const emptyState = document.getElementById('transactions-empty');
+        let visibleCount = 0;
+
+        // If no search term, show all rows
+        if (!searchTerm) {
+            rows.forEach(row => {
+                row.style.display = '';
+                visibleCount++;
+            });
+
+            // Show date headers
+            document.querySelectorAll('.date-header').forEach(header => {
+                header.style.display = '';
+            });
+
+            // Hide empty state
+            emptyState.classList.add('hidden');
+            return;
+        }
+
+        // Track which date headers should be visible
+        const visibleDates = new Set();
+
+        // Filter rows based on search term
+        rows.forEach(row => {
+            const description = row.querySelector('.transaction-description').textContent.toLowerCase();
+            const category = row.querySelector('.transaction-category').textContent.toLowerCase();
+
+            if (description.includes(searchTerm) || category.includes(searchTerm)) {
+                row.style.display = '';
+                visibleCount++;
+
+                // Get the date header for this row
+                let currentElement = row.previousElementSibling;
+                while (currentElement && !currentElement.classList.contains('date-header')) {
+                    currentElement = currentElement.previousElementSibling;
+                }
+
+                if (currentElement) {
+                    visibleDates.add(currentElement);
+                }
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // Show/hide date headers based on visible transactions
+        document.querySelectorAll('.date-header').forEach(header => {
+            if (visibleDates.has(header)) {
+                header.style.display = '';
+            } else {
+                header.style.display = 'none';
+            }
+        });
+
+        // Show empty state if no visible transactions
+        if (visibleCount === 0) {
+            emptyState.classList.remove('hidden');
+        } else {
+            emptyState.classList.add('hidden');
+        }
+    }
+
+    /**
+     * Export transactions to CSV
+     */
+    exportTransactions() {
+        // Check if we have transactions data
+        if (!this.lastTransactionsData || !this.lastTransactionsData.results || this.lastTransactionsData.results.length === 0) {
+            window.showNotification('Não há transações para exportar', 'warning');
+            return;
+        }
+
+        // Get account name
+        const accountName = document.getElementById('transaction-account-name').textContent;
+
+        // Create CSV content
+        let csvContent = 'Data,Hora,Descrição,Categoria,Tipo,Valor,Saldo\n';
+
+        this.lastTransactionsData.results.forEach(transaction => {
+            // Format date and time
+            const dateObj = new Date(transaction.date);
+            const dateStr = dateObj.toLocaleDateString('pt-BR');
+            const timeStr = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+            // Format description (escape commas and quotes)
+            const description = `"${transaction.description.replace(/"/g, '""')}"`;
+
+            // Get category
+            const category = transaction.category || 'Não categorizado';
+
+            // Get type
+            const type = transaction.type === 'CREDIT' ? 'Entrada' : 'Saída';
+
+            // Format amount
+            const amount = this.formatCurrency(Math.abs(transaction.amount)).replace('.', '');
+
+            // Get balance if available
+            const balance = transaction.balance !== undefined ?
+                this.formatCurrency(transaction.balance).replace('.', '') :
+                '';
+
+            // Add row to CSV
+            csvContent += `${dateStr},${timeStr},${description},${category},${type},${amount},${balance}\n`;
+        });
+
+        // Create download link
+        const encodedUri = encodeURI('data:text/csv;charset=utf-8,' + csvContent);
+        const link = document.createElement('a');
+        link.setAttribute('href', encodedUri);
+        link.setAttribute('download', `extrato_${accountName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+
+        // Trigger download
+        link.click();
+
+        // Clean up
+        document.body.removeChild(link);
+
+        // Show notification
+        window.showNotification('Extrato exportado com sucesso!', 'success');
+    }
+
+    /**
+     * Format a date for display
+     * @param {string} dateStr - The date string in ISO format
+     * @returns {string} - The formatted date
+     */
+    formatDate(dateStr) {
+        const date = new Date(dateStr);
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        // Check if it's today
+        if (date.toDateString() === today.toDateString()) {
+            return 'Hoje, ' + date.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' });
+        }
+
+        // Check if it's yesterday
+        if (date.toDateString() === yesterday.toDateString()) {
+            return 'Ontem, ' + date.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' });
+        }
+
+        // Otherwise, return the full date
+        return date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    }
+
+    /**
+     * Debounce function to limit how often a function can be called
+     * @param {Function} func - The function to debounce
+     * @param {number} wait - The debounce wait time in milliseconds
+     * @returns {Function} - The debounced function
+     */
+    debounce(func, wait) {
+        let timeout;
+        return function(...args) {
+            const context = this;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(context, args), wait);
+        };
     }
 }
 
