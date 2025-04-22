@@ -20,6 +20,10 @@ class PortfolioManager {
      * Initialize the portfolio manager
      */
     init() {
+        // Make the portfolio manager globally accessible
+        window.portfolioManager = this;
+        console.log('Portfolio manager initialized and made globally accessible');
+
         // Load portfolio data
         this.loadPortfolio();
 
@@ -72,6 +76,12 @@ class PortfolioManager {
         const emptyConnectBtn = document.getElementById('empty-connect-btn');
         if (emptyConnectBtn) {
             emptyConnectBtn.addEventListener('click', () => this.connectBank());
+        }
+
+        // Connect Rico Investimentos button
+        const connectRicoBtn = document.getElementById('connect-rico-btn');
+        if (connectRicoBtn) {
+            connectRicoBtn.addEventListener('click', () => this.connectToRico());
         }
 
         // Refresh Open Finance button
@@ -1037,13 +1047,23 @@ class PortfolioManager {
      * Connect a bank using Pluggy Connect
      */
     connectBank() {
+        console.log('connectBank method called');
+        console.log('PluggyManager exists:', !!window.PluggyManager);
+
         if (window.PluggyManager) {
-            window.PluggyManager.openConnectWidget();
+            console.log('Calling openConnectWidget method');
+            try {
+                window.PluggyManager.openConnectWidget();
+                console.log('openConnectWidget method called successfully');
+            } catch (error) {
+                console.error('Error calling openConnectWidget:', error);
+                window.showNotification('Erro ao abrir o widget de conexão', 'error');
+            }
         } else {
             console.error('Pluggy Manager not initialized');
             window.showNotification('Erro ao inicializar o Pluggy Manager', 'error');
         }
-    },
+    }
 
     /**
      * Refresh the Open Finance connection
@@ -1199,16 +1219,26 @@ class PortfolioManager {
                     <i class="fas fa-university"></i>
                     <p>Nenhuma conta bancária conectada</p>
                     <p>Conecte suas contas bancárias para visualizar seus dados financeiros em um só lugar</p>
-                    <button type="button" class="connect-bank-btn" id="empty-connect-btn">
-                        <i class="fas fa-link"></i>Conectar Banco
-                    </button>
+                    <div class="connect-buttons">
+                        <button type="button" class="connect-bank-btn" id="empty-connect-btn">
+                            <i class="fas fa-link"></i>Conectar Banco
+                        </button>
+                        <button type="button" class="connect-rico-btn" id="connect-rico-btn">
+                            <i class="fas fa-chart-line"></i>Conectar Rico Investimentos
+                        </button>
+                    </div>
                 </div>
             `;
 
-            // Add event listener to the new button
+            // Add event listeners to the new buttons
             const emptyConnectBtn = document.getElementById('empty-connect-btn');
             if (emptyConnectBtn) {
                 emptyConnectBtn.addEventListener('click', () => this.connectBank());
+            }
+
+            const connectRicoBtn = document.getElementById('connect-rico-btn');
+            if (connectRicoBtn) {
+                connectRicoBtn.addEventListener('click', () => this.connectToRico());
             }
         }
     }

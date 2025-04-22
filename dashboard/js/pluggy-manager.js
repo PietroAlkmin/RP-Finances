@@ -214,6 +214,16 @@ const PluggyManager = {
                     sandbox: true,
                     // Show all available connectors
                     showAllConnectors: true,
+                    // Specific parameters for investment institutions
+                    itemParameters: {
+                        // Rico Investimentos specific parameters
+                        // These parameters help with credential validation and MFA handling
+                        '8': { // Rico Investimentos connector ID
+                            forceWebView: true, // Force using web view for better authentication handling
+                            webhookUrl: window.location.origin + '/api/pluggy/webhook', // Webhook for MFA notifications
+                            clientUserId: 'rico-user-' + Date.now() // Unique user ID for tracking
+                        }
+                    },
                     onSuccess: (itemData) => {
                         console.log('Pluggy Connect success:', itemData);
 
@@ -236,7 +246,30 @@ const PluggyManager = {
                     },
                     onError: (error) => {
                         console.error('Pluggy Connect error:', error);
-                        window.showNotification('Erro ao conectar conta: ' + error.message, 'error');
+
+                        // Enhanced error handling for credential issues
+                        let errorMessage = error.message || 'Erro desconhecido';
+
+                        // Check for specific error types
+                        if (error.code === 'INVALID_CREDENTIALS') {
+                            errorMessage = 'Credenciais inválidas. Por favor, verifique seu usuário e senha.';
+                        } else if (error.code === 'ALREADY_LOGGED_IN') {
+                            errorMessage = 'Já existe uma sessão ativa. Por favor, faça logout no site do banco e tente novamente.';
+                        } else if (error.code === 'ACCOUNT_LOCKED') {
+                            errorMessage = 'Conta bloqueada. Por favor, acesse o site do banco para desbloquear sua conta.';
+                        } else if (error.code === 'MFA_REQUIRED') {
+                            errorMessage = 'Autenticação de dois fatores necessária. Por favor, complete o processo de autenticação.';
+                        } else if (error.code === 'CONNECTION_ERROR') {
+                            errorMessage = 'Erro de conexão com a instituição. Por favor, tente novamente mais tarde.';
+                        } else if (error.message && error.message.toLowerCase().includes('rico')) {
+                            // Specific handling for Rico Investimentos
+                            errorMessage = 'Erro ao conectar com Rico Investimentos. Verifique suas credenciais e tente novamente.';
+
+                            // Log detailed information for debugging
+                            console.log('Rico Investimentos connection error details:', error);
+                        }
+
+                        window.showNotification('Erro ao conectar conta: ' + errorMessage, 'error');
                     },
                     onClose: () => {
                         console.log('Pluggy Connect closed');
@@ -714,6 +747,109 @@ const PluggyManager = {
     // Check if an item is connected
     isItemConnected() {
         return !!this.config.itemId;
+    },
+
+    // Connect specifically to Rico Investimentos
+    async connectToRico() {
+        try {
+            console.log('Attempting to connect to Rico Investimentos...');
+
+            // Get a Connect Token
+            const connectToken = await this.getConnectToken();
+
+            if (!connectToken) {
+                throw new Error('Failed to get connect token');
+            }
+
+            // Create the Pluggy Connect instance specifically for Rico
+            console.log('Creating Pluggy Connect instance for Rico with token');
+
+            const pluggyConnectConfig = {
+                connectToken,
+                includeSandbox: false, // Disable sandbox for production connections
+                // Only include Brazil
+                countries: ['BR'],
+                // Only include investment connector type
+                connectorTypes: ['INVESTMENT'],
+                // Disable sandbox mode for production
+                sandbox: false,
+                // Don't show all connectors, only Rico
+                showAllConnectors: false,
+                // Specify Rico Investimentos connector ID
+                connectorId: 8, // Rico Investimentos connector ID
+                // Specific parameters for Rico
+                parameters: {
+                    forceWebView: true, // Force using web view for better authentication
+                    clientUserId: 'rico-user-' + Date.now(), // Unique user ID for tracking
+                    // Additional parameters that might help with Rico connection
+                    redirectUrl: window.location.origin + '/dashboard/portfolio.html',
+                    userAction: 'CONNECT'
+                },
+                onSuccess: (itemData) => {
+                    console.log('Rico Investimentos connection success:', itemData);
+
+                    // Save the item ID
+                    this.config.itemId = itemData.item.id;
+
+                    // Save to localStorage
+                    this.savePluggyData({
+                        itemId: itemData.item.id,
+                        connectorId: itemData.item.connector.id,
+                        connectorName: itemData.item.connector.name,
+                        createdAt: itemData.item.createdAt
+                    });
+
+                    // Show success notification
+                    window.showNotification('Rico Investimentos conectado com sucesso!', 'success');
+
+                    // Update the UI to show connected state
+                    if (window.portfolioManager) {
+                        window.portfolioManager.renderOpenFinanceSection();
+                    }
+
+                    // Fetch accounts data
+                    this.fetchAccounts().catch(error => {
+                        console.error('Error fetching accounts after Rico connection:', error);
+                        window.showNotification('Erro ao buscar contas. Por favor, tente novamente.', 'error');
+                    });
+                },
+                onError: (error) => {
+                    console.error('Rico Investimentos connection error:', error);
+
+                    // Enhanced error handling for Rico credential issues
+                    let errorMessage = error.message || 'Erro desconhecido';
+
+                    // Check for specific error types
+                    if (error.code === 'INVALID_CREDENTIALS') {
+                        errorMessage = 'Credenciais inválidas para Rico Investimentos. Por favor, verifique seu CPF e senha.';
+                    } else if (error.code === 'ALREADY_LOGGED_IN') {
+                        errorMessage = 'Já existe uma sessão ativa no Rico. Por favor, faça logout no site do Rico e tente novamente.';
+                    } else if (error.code === 'ACCOUNT_LOCKED') {
+                        errorMessage = 'Conta Rico bloqueada. Por favor, acesse o site do Rico para desbloquear sua conta.';
+                    } else if (error.code === 'MFA_REQUIRED') {
+                        errorMessage = 'Autenticação de dois fatores necessária. Por favor, complete o processo de autenticação no Rico.';
+                    }
+
+                    window.showNotification('Erro ao conectar Rico Investimentos: ' + errorMessage, 'error');
+                },
+                onClose: () => {
+                    console.log('Rico Investimentos connection widget closed');
+                }
+            };
+
+            console.log('Rico Investimentos Connect config:', JSON.stringify(pluggyConnectConfig, null, 2));
+
+            const pluggyConnect = new window.PluggyConnect(pluggyConnectConfig);
+
+            // Open the widget
+            pluggyConnect.init();
+
+            return true;
+        } catch (error) {
+            console.error('Error creating Rico Investimentos connection:', error);
+            window.showNotification('Erro ao conectar com Rico Investimentos. Por favor, tente novamente.', 'error');
+            return false;
+        }
     },
 
     // Refresh the connection

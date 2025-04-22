@@ -87,10 +87,10 @@
                 <div class="open-finance-header">
                     <h2><i class="fas fa-university"></i> Open Finance</h2>
                     <div class="open-finance-actions">
-                        <button type="button" class="refresh-open-finance-btn" id="refresh-open-finance-btn" title="Atualizar conexões">
+                        <button type="button" class="refresh-open-finance-btn" id="refresh-open-finance-btn" title="Atualizar conexões" onclick="if(window.portfolioManager) window.portfolioManager.refreshOpenFinance();">
                             <i class="fas fa-sync-alt"></i> Atualizar
                         </button>
-                        <button type="button" class="connect-bank-btn" id="connect-bank-btn">
+                        <button type="button" class="connect-bank-btn" id="connect-bank-btn" onclick="if(window.portfolioManager) window.portfolioManager.connectBank();">
                             <i class="fas fa-link"></i>Conectar Banco
                         </button>
                     </div>
@@ -100,9 +100,11 @@
                         <i class="fas fa-university"></i>
                         <p>Nenhuma conta bancária conectada</p>
                         <p>Conecte suas contas bancárias para visualizar seus dados financeiros em um só lugar</p>
-                        <button type="button" class="connect-bank-btn" id="empty-connect-btn">
-                            <i class="fas fa-link"></i>Conectar Banco
-                        </button>
+                        <div class="connect-buttons">
+                            <button type="button" class="connect-bank-btn" id="empty-connect-btn" onclick="if(window.portfolioManager) window.portfolioManager.connectBank();">
+                                <i class="fas fa-link"></i>Conectar Banco
+                            </button>
+                        </div>
                     </div>
                     <div id="connected-accounts" class="connected-accounts hidden">
                         <!-- Accounts will be added here dynamically -->

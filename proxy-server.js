@@ -843,6 +843,49 @@ app.get('/api/pluggy/investments', async (req, res) => {
     }
 });
 
+// Webhook endpoint for Pluggy notifications (MFA, etc.)
+app.post('/api/pluggy/webhook', async (req, res) => {
+    try {
+        console.log('Received webhook notification from Pluggy:', req.body);
+
+        // Handle different webhook event types
+        const event = req.body;
+
+        if (event && event.type) {
+            switch (event.type) {
+                case 'item/created':
+                    console.log('Item created:', event.item);
+                    break;
+                case 'item/updated':
+                    console.log('Item updated:', event.item);
+                    break;
+                case 'item/error':
+                    console.error('Item error:', event.error);
+                    break;
+                case 'connector/status/updated':
+                    console.log('Connector status updated:', event.connector);
+                    break;
+                case 'item/login_succeeded':
+                    console.log('Login succeeded for item:', event.item);
+                    break;
+                case 'item/waiting_user_input':
+                    console.log('Item waiting for user input:', event.item);
+                    // This is typically for MFA challenges
+                    break;
+                default:
+                    console.log('Unhandled webhook event type:', event.type);
+            }
+        }
+
+        // Always return 200 OK to acknowledge receipt
+        res.status(200).json({ success: true });
+    } catch (error) {
+        console.error('Error processing webhook:', error.message);
+        // Still return 200 to acknowledge receipt
+        res.status(200).json({ success: true, error: error.message });
+    }
+});
+
 // Endpoint to refresh an item
 app.post('/api/pluggy/items/:itemId/refresh', async (req, res) => {
     try {
