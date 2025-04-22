@@ -371,7 +371,7 @@ app.get('/api/pluggy/connect-token', async (req, res) => {
         console.log('Requesting Pluggy Connect Token...');
         // Request a Connect Token with parameters to show all connectors
         const response = await axios.post(`${PLUGGY_API_URL}/connect_token`, {
-            clientUserId: 'test-user@example.com',
+            clientUserId: 'user-' + Date.now(), // Use a unique user ID
             options: {
                 includeSandbox: true,
                 showAllConnectors: true
@@ -718,18 +718,18 @@ app.get('/api/pluggy/transactions', async (req, res) => {
     }
 });
 
-// Endpoint to get investments for an account
+// Endpoint to get investments for an account or item
 app.get('/api/pluggy/investments', async (req, res) => {
     try {
-        const { accountId } = req.query;
+        const { accountId, itemId } = req.query;
 
-        if (!accountId) {
-            return res.status(400).json({ error: 'Account ID is required' });
+        if (!accountId && !itemId) {
+            return res.status(400).json({ error: 'Either Account ID or Item ID is required' });
         }
 
-        // Check if this is a mock account
-        if (accountId.startsWith('mock-')) {
-            console.log('Using mock investments data for account:', accountId);
+        // Check if this is a mock account or item
+        if ((accountId && accountId.startsWith('mock-')) || (itemId && itemId.startsWith('mock-'))) {
+            console.log('Using mock investments data for:', accountId || itemId);
 
             // Generate mock investments
             const mockInvestments = {
@@ -780,8 +780,18 @@ app.get('/api/pluggy/investments', async (req, res) => {
             try {
                 const apiKey = await getPluggyApiKey();
 
-                // Request investments for the account
-                const response = await axios.get(`${PLUGGY_API_URL}/investments?accountId=${accountId}`, {
+                // Build the URL based on whether we have an account ID or item ID
+                let url;
+                if (accountId) {
+                    url = `${PLUGGY_API_URL}/investments?accountId=${accountId}`;
+                    console.log('Requesting real investments for account:', accountId);
+                } else {
+                    url = `${PLUGGY_API_URL}/investments?itemId=${itemId}`;
+                    console.log('Requesting real investments for item:', itemId);
+                }
+
+                // Request investments
+                const response = await axios.get(url, {
                     headers: {
                         'X-API-KEY': apiKey
                     }
@@ -823,8 +833,18 @@ app.get('/api/pluggy/investments', async (req, res) => {
         // Get a valid API key
         const apiKey = await getPluggyApiKey();
 
-        // Request investments for the account
-        const response = await axios.get(`${PLUGGY_API_URL}/investments?accountId=${accountId}`, {
+        // Build the URL based on whether we have an account ID or item ID
+        let url;
+        if (accountId) {
+            url = `${PLUGGY_API_URL}/investments?accountId=${accountId}`;
+            console.log('Requesting investments for account:', accountId);
+        } else {
+            url = `${PLUGGY_API_URL}/investments?itemId=${itemId}`;
+            console.log('Requesting investments for item:', itemId);
+        }
+
+        // Request investments
+        const response = await axios.get(url, {
             headers: {
                 'X-API-KEY': apiKey
             }

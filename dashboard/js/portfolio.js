@@ -72,6 +72,28 @@ class PortfolioManager {
             connectBankBtn.addEventListener('click', () => this.connectBank());
         }
 
+        // Add Rico Investments button to the portfolio section
+        const portfolioHeader = document.querySelector('.section-header');
+        if (portfolioHeader) {
+            const ricoButton = document.createElement('button');
+            ricoButton.type = 'button';
+            ricoButton.className = 'btn btn-outline-primary';
+            ricoButton.id = 'connect-rico-portfolio-btn';
+            ricoButton.innerHTML = '<i class="fas fa-chart-line"></i> Importar Investimentos';
+            ricoButton.style.marginRight = '10px';
+
+            // Insert before the add asset button
+            const addButton = portfolioHeader.querySelector('#add-asset-btn');
+            if (addButton) {
+                portfolioHeader.insertBefore(ricoButton, addButton);
+            } else {
+                portfolioHeader.appendChild(ricoButton);
+            }
+
+            // Add event listener
+            ricoButton.addEventListener('click', () => this.connectToRico());
+        }
+
         // Empty connect button
         const emptyConnectBtn = document.getElementById('empty-connect-btn');
         if (emptyConnectBtn) {
@@ -1066,6 +1088,28 @@ class PortfolioManager {
     }
 
     /**
+     * Connect specifically to Rico Investimentos
+     */
+    connectToRico() {
+        console.log('connectToRico method called');
+        console.log('PluggyManager exists:', !!window.PluggyManager);
+
+        if (window.PluggyManager) {
+            console.log('Calling connectToRico method on PluggyManager');
+            try {
+                window.PluggyManager.connectToRico();
+                console.log('connectToRico method called successfully');
+            } catch (error) {
+                console.error('Error calling connectToRico:', error);
+                window.showNotification('Erro ao conectar com Rico Investimentos', 'error');
+            }
+        } else {
+            console.error('Pluggy Manager not initialized');
+            window.showNotification('Erro ao inicializar o Pluggy Manager', 'error');
+        }
+    }
+
+    /**
      * Refresh the Open Finance connection
      */
     refreshOpenFinance() {
@@ -1224,7 +1268,7 @@ class PortfolioManager {
                             <i class="fas fa-link"></i>Conectar Banco
                         </button>
                         <button type="button" class="connect-rico-btn" id="connect-rico-btn">
-                            <i class="fas fa-chart-line"></i>Conectar Rico Investimentos
+                            <i class="fas fa-chart-line"></i>Conectar Plataforma de Investimentos
                         </button>
                     </div>
                 </div>
@@ -1738,71 +1782,114 @@ class PortfolioManager {
     importInvestmentsToPortfolio(accountId) {
         console.log('Importing investments from account:', accountId);
 
-        // In a real implementation, we would fetch the actual investments from Pluggy API
-        // For this demo, we'll create some sample investments based on the account
-
         // Show a loading notification
         window.showNotification('Importando investimentos...', 'info');
 
-        // Simulate API call delay
-        setTimeout(() => {
-            try {
-                // Create sample investments
-                const sampleInvestments = [
-                    {
-                        symbol: 'CDB_XYZ',
-                        name: 'CDB Banco XYZ',
-                        assetClass: 'bond',
-                        quantity: 1,
-                        purchasePrice: 5000.00,
-                        purchaseDate: new Date().toISOString().split('T')[0],
-                        notes: 'Importado via Open Finance'
-                    },
-                    {
-                        symbol: 'TD_SELIC',
-                        name: 'Tesouro Direto Selic',
-                        assetClass: 'bond',
-                        quantity: 1,
-                        purchasePrice: 3750.00,
-                        purchaseDate: new Date().toISOString().split('T')[0],
-                        notes: 'Importado via Open Finance'
-                    },
-                    {
-                        symbol: 'FUNDO_ACOES',
-                        name: 'Fundo de Ações',
-                        assetClass: 'etf',
-                        quantity: 1,
-                        purchasePrice: 3750.00,
-                        purchaseDate: new Date().toISOString().split('T')[0],
-                        notes: 'Importado via Open Finance'
-                    }
-                ];
+        // Check if PluggyManager is available
+        if (!window.PluggyManager) {
+            console.error('PluggyManager not available');
+            window.showNotification('Erro ao importar investimentos: serviço indisponível', 'error');
+            return;
+        }
 
-                // Add each investment to the portfolio
-                sampleInvestments.forEach(investment => {
-                    // Generate a unique ID for the investment
-                    investment.id = this.generateId();
+        // Fetch investments from Pluggy API
+        window.PluggyManager.fetchInvestments(accountId)
+            .then(data => {
+                console.log('Fetched investments for import:', data);
+                this.importInvestmentsFromData(data);
+            })
+            .catch(error => {
+                console.error('Error fetching investments for import:', error);
+                window.showNotification('Erro ao importar investimentos. Tente novamente mais tarde.', 'error');
+            });
+    }
 
-                    // Add to portfolio
-                    this.portfolio.assets.push(investment);
-                });
+    /**
+     * Import investments directly from investment data
+     * @param {Object} data - The investments data from Pluggy
+     */
+    importInvestmentsFromData(data) {
+        console.log('Importing investments from data:', data);
 
-                // Save the updated portfolio
-                this.savePortfolio();
+        if (!data.results || data.results.length === 0) {
+            window.showNotification('Nenhum investimento encontrado para importar', 'warning');
+            return;
+        }
 
-                // Generate new mock prices
-                this.generateMockPrices();
+        // Map Pluggy investment types to our asset classes
+        const typeToClassMap = {
+            'FIXED_INCOME': 'bond',
+            'GOVERNMENT_BOND': 'bond',
+            'EQUITY': 'stock',
+            'MUTUAL_FUND': 'etf',
+            'ETF': 'etf',
+            'CRYPTO': 'crypto',
+            'REAL_ESTATE': 'reit',
+            'OTHER': 'other'
+        };
 
-                // Re-render the portfolio
-                this.renderPortfolio();
+        // Convert Pluggy investments to our portfolio format
+        const investments = data.results.map(inv => {
+            // Generate a symbol if not available
+            const symbol = inv.code || inv.number || inv.name.replace(/\s+/g, '_').toUpperCase();
 
-                // Show success notification
-                window.showNotification('Investimentos importados com sucesso!', 'success');
-            } catch (error) {
-                console.error('Error importing investments:', error);
-                window.showNotification('Erro ao importar investimentos', 'error');
+            // Map investment type to asset class
+            const assetClass = typeToClassMap[inv.type] || 'other';
+
+            // Use balance as current value and amount as purchase price
+            const purchasePrice = inv.amount || inv.balance;
+
+            // Default quantity to 1 for most investments
+            const quantity = inv.quantity || 1;
+
+            // Use investment date if available, otherwise use today
+            const purchaseDate = inv.date ?
+                new Date(inv.date).toISOString().split('T')[0] :
+                new Date().toISOString().split('T')[0];
+
+            return {
+                id: this.generateId(),
+                symbol: symbol,
+                name: inv.name,
+                assetClass: assetClass,
+                quantity: quantity,
+                purchasePrice: purchasePrice / quantity, // Price per unit
+                purchaseDate: purchaseDate,
+                notes: `Importado automaticamente da plataforma de investimentos em ${new Date().toLocaleDateString()}`
+            };
+        });
+
+        // Add each investment to the portfolio
+        investments.forEach(investment => {
+            // Check if this investment already exists in the portfolio
+            const existingIndex = this.portfolio.assets.findIndex(
+                a => a.symbol === investment.symbol && a.name === investment.name
+            );
+
+            if (existingIndex !== -1) {
+                // Update existing investment
+                this.portfolio.assets[existingIndex] = {
+                    ...this.portfolio.assets[existingIndex],
+                    ...investment,
+                    id: this.portfolio.assets[existingIndex].id // Keep the original ID
+                };
+            } else {
+                // Add new investment
+                this.portfolio.assets.push(investment);
             }
-        }, 1500);
+        });
+
+        // Save the updated portfolio
+        this.savePortfolio();
+
+        // Generate new mock prices
+        this.generateMockPrices();
+
+        // Re-render the portfolio
+        this.renderPortfolio();
+
+        // Show success notification
+        window.showNotification(`${investments.length} investimentos importados com sucesso!`, 'success');
     }
 
     /**
