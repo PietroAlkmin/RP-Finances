@@ -131,20 +131,21 @@
                     <table id="assets-table">
                         <thead>
                             <tr>
-                                <th>Ativo</th>
-                                <th>Classe</th>
-                                <th>Quantidade</th>
-                                <th>Preço de Compra</th>
-                                <th>Preço Atual</th>
-                                <th>Valor Total</th>
-                                <th>Variação</th>
+                                <th class="sortable" data-sort="name">Ativo <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="assetClass">Classe <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="quantity">Quantidade <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="purchasePrice">Preço de Compra <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="currentPrice">Preço Atual <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="totalValue">Valor Total <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="portfolioPercentage">% do Portfolio <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="changePercent">Variação <i class="fas fa-sort"></i></th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody id="assets-table-body">
                             <!-- Conteúdo será preenchido via JavaScript -->
                             <tr class="empty-state">
-                                <td colspan="8" class="empty-message">
+                                <td colspan="9" class="empty-message">
                                     <div class="empty-content">
                                         <i class="fas fa-briefcase empty-icon"></i>
                                         <p>Seu portfólio está vazio</p>

@@ -247,6 +247,30 @@ table {
     overflow: hidden;
 }
 
+/* Portfolio percentage styles */
+.portfolio-percentage-cell {
+    position: relative;
+}
+
+.percentage-bar-container {
+    width: 100%;
+    height: 4px;
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 2px;
+    margin-top: 4px;
+}
+
+.percentage-bar {
+    height: 100%;
+    background-color: var(--primary-color);
+    border-radius: 2px;
+}
+
+.percentage-value {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
 th, td {
     padding: var(--spacing-md) var(--spacing-md);
     text-align: left;
@@ -260,6 +284,37 @@ th {
     background-color: rgba(0, 0, 0, 0.02);
     text-transform: uppercase;
     letter-spacing: 0.5px;
+}
+
+/* Sortable table headers */
+th.sortable {
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+}
+
+th.sortable:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+th.sortable i.fas {
+    margin-left: 5px;
+    font-size: 0.75rem;
+    opacity: 0.5;
+}
+
+th.sortable:hover i.fas {
+    opacity: 0.8;
+}
+
+th.sort-asc i.fas {
+    opacity: 1;
+    color: var(--primary-color);
+}
+
+th.sort-desc i.fas {
+    opacity: 1;
+    color: var(--primary-color);
 }
 
 td {

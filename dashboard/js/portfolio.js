@@ -12,6 +12,12 @@ class PortfolioManager {
         this.currentAssetId = null;
         this.mockPrices = {}; // For simulating current prices
 
+        // Sorting state
+        this.sortConfig = {
+            key: null,
+            direction: 'asc'
+        };
+
         // Initialize
         this.init();
     }
@@ -58,6 +64,17 @@ class PortfolioManager {
         const addAssetBtn = document.getElementById('add-asset-btn');
         if (addAssetBtn) {
             addAssetBtn.addEventListener('click', () => this.showAssetModal());
+        }
+
+        // Set up sorting for table headers
+        const sortableHeaders = document.querySelectorAll('th.sortable');
+        if (sortableHeaders.length > 0) {
+            sortableHeaders.forEach(header => {
+                header.addEventListener('click', () => {
+                    const sortKey = header.getAttribute('data-sort');
+                    this.sortAssets(sortKey);
+                });
+            });
         }
 
         // Empty state add button
@@ -276,6 +293,53 @@ class PortfolioManager {
     }
 
     /**
+     * Sort assets based on a key
+     * @param {string} key - The key to sort by
+     */
+    sortAssets(key) {
+        // Update sort direction
+        if (this.sortConfig.key === key) {
+            // If already sorting by this key, toggle direction
+            this.sortConfig.direction = this.sortConfig.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            // New sort key, default to ascending
+            this.sortConfig.key = key;
+            this.sortConfig.direction = 'asc';
+        }
+
+        // Update UI to show sort direction
+        this.updateSortIndicators();
+
+        // Re-render the table with sorted data
+        this.renderAssetTable();
+    }
+
+    /**
+     * Update the sort indicators in the table headers
+     */
+    updateSortIndicators() {
+        // Remove all existing sort classes
+        const headers = document.querySelectorAll('th.sortable');
+        headers.forEach(header => {
+            header.classList.remove('sort-asc', 'sort-desc');
+            // Reset the sort icon
+            const icon = header.querySelector('i.fas');
+            if (icon) icon.className = 'fas fa-sort';
+        });
+
+        // Add the appropriate sort class to the active header
+        if (this.sortConfig.key) {
+            const activeHeader = document.querySelector(`th[data-sort="${this.sortConfig.key}"]`);
+            if (activeHeader) {
+                activeHeader.classList.add(`sort-${this.sortConfig.direction}`);
+                // Update the sort icon
+                const icon = activeHeader.querySelector('i.fas');
+                if (icon) icon.className = `fas fa-sort-${this.sortConfig.direction === 'asc' ? 'up' : 'down'}`;
+            }
+        }
+    }
+
+    /**
      * Render the asset table
      */
     renderAssetTable() {
@@ -290,7 +354,7 @@ class PortfolioManager {
         if (this.portfolio.assets.length === 0) {
             tableBody.innerHTML = `
                 <tr class="empty-state">
-                    <td colspan="8" class="empty-message">
+                    <td colspan="9" class="empty-message">
                         <div class="empty-content">
                             <i class="fas fa-briefcase empty-icon"></i>
                             <p>Seu portfólio está vazio</p>
@@ -312,8 +376,81 @@ class PortfolioManager {
             return;
         }
 
-        // Add each asset to the table
+        // Calculate total portfolio value first
+        let totalPortfolioValue = 0;
         this.portfolio.assets.forEach(asset => {
+            const currentPrice = this.mockPrices[asset.id] || asset.purchasePrice;
+            const assetValue = currentPrice * asset.quantity;
+            totalPortfolioValue += assetValue;
+        });
+
+        // Create a copy of the assets array for sorting
+        let assetsToRender = [...this.portfolio.assets];
+
+        // Calculate portfolio percentage for each asset
+        assetsToRender.forEach(asset => {
+            const currentPrice = this.mockPrices[asset.id] || asset.purchasePrice;
+            const assetValue = currentPrice * asset.quantity;
+            asset.portfolioPercentage = (assetValue / totalPortfolioValue) * 100;
+        });
+
+        // Apply sorting if configured
+        if (this.sortConfig.key) {
+            assetsToRender.sort((a, b) => {
+                let aValue, bValue;
+
+                // Get the values to compare based on the sort key
+                switch(this.sortConfig.key) {
+                    case 'name':
+                        aValue = a.name.toLowerCase();
+                        bValue = b.name.toLowerCase();
+                        break;
+                    case 'assetClass':
+                        aValue = this.getAssetClassName(a.assetClass).toLowerCase();
+                        bValue = this.getAssetClassName(b.assetClass).toLowerCase();
+                        break;
+                    case 'quantity':
+                        aValue = a.quantity;
+                        bValue = b.quantity;
+                        break;
+                    case 'purchasePrice':
+                        aValue = a.purchasePrice;
+                        bValue = b.purchasePrice;
+                        break;
+                    case 'currentPrice':
+                        aValue = this.mockPrices[a.id] || a.purchasePrice;
+                        bValue = this.mockPrices[b.id] || b.purchasePrice;
+                        break;
+                    case 'totalValue':
+                        aValue = (this.mockPrices[a.id] || a.purchasePrice) * a.quantity;
+                        bValue = (this.mockPrices[b.id] || b.purchasePrice) * b.quantity;
+                        break;
+                    case 'portfolioPercentage':
+                        aValue = a.portfolioPercentage;
+                        bValue = b.portfolioPercentage;
+                        break;
+                    case 'changePercent':
+                        const aCurrentPrice = this.mockPrices[a.id] || a.purchasePrice;
+                        const bCurrentPrice = this.mockPrices[b.id] || b.purchasePrice;
+                        aValue = ((aCurrentPrice - a.purchasePrice) / a.purchasePrice) * 100;
+                        bValue = ((bCurrentPrice - b.purchasePrice) / b.purchasePrice) * 100;
+                        break;
+                    default:
+                        aValue = a.name.toLowerCase();
+                        bValue = b.name.toLowerCase();
+                }
+
+                // Apply sort direction
+                if (this.sortConfig.direction === 'asc') {
+                    return aValue > bValue ? 1 : -1;
+                } else {
+                    return aValue < bValue ? 1 : -1;
+                }
+            });
+        }
+
+        // Add each asset to the table
+        assetsToRender.forEach(asset => {
             const currentPrice = this.mockPrices[asset.id] || asset.purchasePrice;
             const totalValue = currentPrice * asset.quantity;
             const changePercent = ((currentPrice - asset.purchasePrice) / asset.purchasePrice) * 100;
@@ -335,6 +472,12 @@ class PortfolioManager {
                 <td>R$ ${this.formatCurrency(asset.purchasePrice)}</td>
                 <td>R$ ${this.formatCurrency(currentPrice)}</td>
                 <td>R$ ${this.formatCurrency(totalValue)}</td>
+                <td class="portfolio-percentage-cell">
+                    <div class="percentage-value">${asset.portfolioPercentage.toFixed(2)}%</div>
+                    <div class="percentage-bar-container">
+                        <div class="percentage-bar" style="width: ${Math.min(asset.portfolioPercentage, 100)}%"></div>
+                    </div>
+                </td>
                 <td class="asset-change ${changeClass}">
                     <i class="fas ${changeIcon}"></i> ${Math.abs(changePercent).toFixed(2)}%
                 </td>
