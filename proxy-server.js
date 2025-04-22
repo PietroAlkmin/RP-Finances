@@ -910,9 +910,15 @@ app.post('/api/pluggy/webhook', async (req, res) => {
 app.post('/api/pluggy/items/:itemId/refresh', async (req, res) => {
     try {
         const { itemId } = req.params;
+        const { parameters } = req.body || {};
 
         if (!itemId) {
             return res.status(400).json({ error: 'Item ID is required' });
+        }
+
+        // Log if we received Rico-specific parameters
+        if (parameters) {
+            console.log(`Received refresh parameters for item ${itemId}:`, parameters);
         }
 
         // Check if this is a mock item
@@ -956,8 +962,12 @@ app.post('/api/pluggy/items/:itemId/refresh', async (req, res) => {
         // Get a valid API key
         const apiKey = await getPluggyApiKey();
 
+        // Prepare request body with parameters if provided
+        const requestBody = parameters ? { parameters } : {};
+        console.log(`Refreshing item ${itemId} with body:`, requestBody);
+
         // Refresh the item
-        const response = await axios.post(`${PLUGGY_API_URL}/items/${itemId}/refresh`, {}, {
+        const response = await axios.post(`${PLUGGY_API_URL}/items/${itemId}/refresh`, requestBody, {
             headers: {
                 'X-API-KEY': apiKey
             }

@@ -1828,19 +1828,67 @@ class PortfolioManager {
             'OTHER': 'other'
         };
 
+        // Rico-specific investment type mapping
+        const ricoTypeMapping = {
+            'CDB': 'FIXED_INCOME',
+            'LCI': 'FIXED_INCOME',
+            'LCA': 'FIXED_INCOME',
+            'TESOURO DIRETO': 'GOVERNMENT_BOND',
+            'TESOURO': 'GOVERNMENT_BOND',
+            'FUNDO': 'MUTUAL_FUND',
+            'FII': 'REAL_ESTATE',
+            'AÇÃO': 'EQUITY',
+            'AÇÕES': 'EQUITY',
+            'ACOES': 'EQUITY',
+            'BITCOIN': 'CRYPTO',
+            'ETH': 'CRYPTO',
+            'ETHEREUM': 'CRYPTO'
+        };
+
         // Convert Pluggy investments to our portfolio format
         const investments = data.results.map(inv => {
             // Generate a symbol if not available
-            const symbol = inv.code || inv.number || inv.name.replace(/\s+/g, '_').toUpperCase();
+            let symbol = inv.code || inv.number || inv.name.replace(/\s+/g, '_').toUpperCase();
+
+            // Clean up symbol for Rico investments
+            if (symbol.includes(' - ')) {
+                // Rico format is often "SYMBOL - Description"
+                symbol = symbol.split(' - ')[0].trim();
+            }
+
+            // Handle Rico-specific investment types
+            let investmentType = inv.type;
+
+            // Try to determine investment type from name if not provided
+            if (investmentType === 'OTHER' || !investmentType) {
+                // Check if the investment name contains any known Rico investment types
+                const upperName = inv.name.toUpperCase();
+                for (const [key, value] of Object.entries(ricoTypeMapping)) {
+                    if (upperName.includes(key)) {
+                        investmentType = value;
+                        console.log(`Detected Rico investment type: ${key} -> ${value} for ${inv.name}`);
+                        break;
+                    }
+                }
+            }
 
             // Map investment type to asset class
-            const assetClass = typeToClassMap[inv.type] || 'other';
+            const assetClass = typeToClassMap[investmentType] || 'other';
 
             // Use balance as current value and amount as purchase price
             const purchasePrice = inv.amount || inv.balance;
 
             // Default quantity to 1 for most investments
-            const quantity = inv.quantity || 1;
+            let quantity = inv.quantity || 1;
+
+            // For Rico stock investments, try to extract quantity from description if not provided
+            if (assetClass === 'stock' && quantity === 1 && inv.description) {
+                const quantityMatch = inv.description.match(/\b(\d+)\s+a[çc][õo]es\b/i);
+                if (quantityMatch && quantityMatch[1]) {
+                    quantity = parseInt(quantityMatch[1], 10);
+                    console.log(`Extracted quantity ${quantity} from description for ${inv.name}`);
+                }
+            }
 
             // Use investment date if available, otherwise use today
             const purchaseDate = inv.date ?
@@ -1855,7 +1903,7 @@ class PortfolioManager {
                 quantity: quantity,
                 purchasePrice: purchasePrice / quantity, // Price per unit
                 purchaseDate: purchaseDate,
-                notes: `Importado automaticamente da plataforma de investimentos em ${new Date().toLocaleDateString()}`
+                notes: `Importado automaticamente da Rico Investimentos em ${new Date().toLocaleDateString()}`
             };
         });
 
