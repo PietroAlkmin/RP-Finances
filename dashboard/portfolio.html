@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="css/professional-theme.css">
     <link rel="stylesheet" href="css/improved-layout.css">
     <link rel="stylesheet" href="css/portfolio-enhanced.css">
+    <link rel="stylesheet" href="css/transactions.css">
 </head>
 <body>
     <!-- Sidebar Navigation -->
@@ -85,18 +86,31 @@
             <div class="card open-finance-section">
                 <div class="open-finance-header">
                     <h2><i class="fas fa-university"></i> Open Finance</h2>
-                    <button type="button" class="connect-bank-btn" id="connect-bank-btn">
-                        <i class="fas fa-link"></i>Conectar Banco
-                    </button>
+                    <div class="open-finance-actions">
+                        <button type="button" class="refresh-open-finance-btn" id="refresh-open-finance-btn" title="Atualizar conexões" onclick="if(window.portfolioManager) window.portfolioManager.refreshOpenFinance();">
+                            <i class="fas fa-sync-alt"></i> Atualizar
+                        </button>
+                        <button type="button" class="connect-bank-btn" id="connect-bank-btn" onclick="if(window.portfolioManager) window.portfolioManager.connectBank();">
+                            <i class="fas fa-link"></i>Conectar Banco
+                        </button>
+                        <button type="button" class="connect-rico-btn" id="header-connect-rico-btn" onclick="if(window.PluggyManager) window.PluggyManager.connectToRico();">
+                            <i class="fas fa-chart-line"></i>Rico Investimentos
+                        </button>
+                    </div>
                 </div>
                 <div id="open-finance-content">
                     <div id="open-finance-empty" class="empty-accounts">
                         <i class="fas fa-university"></i>
                         <p>Nenhuma conta bancária conectada</p>
                         <p>Conecte suas contas bancárias para visualizar seus dados financeiros em um só lugar</p>
-                        <button type="button" class="connect-bank-btn" id="empty-connect-btn">
-                            <i class="fas fa-link"></i>Conectar Banco
-                        </button>
+                        <div class="connect-buttons">
+                            <button type="button" class="connect-bank-btn" id="empty-connect-btn" onclick="if(window.portfolioManager) window.portfolioManager.connectBank();">
+                                <i class="fas fa-link"></i>Conectar Banco
+                            </button>
+                            <button type="button" class="connect-rico-btn" id="connect-rico-btn" onclick="if(window.PluggyManager) window.PluggyManager.connectToRico();">
+                                <i class="fas fa-chart-line"></i>Conectar Rico Investimentos
+                            </button>
+                        </div>
                     </div>
                     <div id="connected-accounts" class="connected-accounts hidden">
                         <!-- Accounts will be added here dynamically -->
@@ -117,20 +131,21 @@
                     <table id="assets-table">
                         <thead>
                             <tr>
-                                <th>Ativo</th>
-                                <th>Classe</th>
-                                <th>Quantidade</th>
-                                <th>Preço de Compra</th>
-                                <th>Preço Atual</th>
-                                <th>Valor Total</th>
-                                <th>Variação</th>
+                                <th class="sortable" data-sort="name">Ativo <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="assetClass">Classe <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="quantity">Quantidade <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="purchasePrice">Preço de Compra <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="currentPrice">Preço Atual <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="totalValue">Valor Total <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="portfolioPercentage">% do Portfolio <i class="fas fa-sort"></i></th>
+                                <th class="sortable" data-sort="changePercent">Variação <i class="fas fa-sort"></i></th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody id="assets-table-body">
                             <!-- Conteúdo será preenchido via JavaScript -->
                             <tr class="empty-state">
-                                <td colspan="8" class="empty-message">
+                                <td colspan="9" class="empty-message">
                                     <div class="empty-content">
                                         <i class="fas fa-briefcase empty-icon"></i>
                                         <p>Seu portfólio está vazio</p>
@@ -289,11 +304,128 @@
         </div>
     </div>
 
+    <!-- Transactions Modal (Extrato) -->
+    <div id="transactions-modal" class="modal hidden">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h2><i class="fas fa-list"></i> Extrato Bancário</h2>
+                <button type="button" class="close-button" id="close-transactions-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Account Info -->
+                <div class="account-info-header">
+                    <div class="account-info-name">
+                        <i class="fas fa-university"></i> <span id="transaction-account-name">Conta</span>
+                    </div>
+                    <div class="account-info-balance">
+                        Saldo: <span id="transaction-account-balance">R$ 0,00</span>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="transactions-filters">
+                    <div class="filter-group">
+                        <label for="transaction-period">Período:</label>
+                        <select id="transaction-period" class="filter-select">
+                            <option value="7">Últimos 7 dias</option>
+                            <option value="15">Últimos 15 dias</option>
+                            <option value="30" selected>Últimos 30 dias</option>
+                            <option value="90">Últimos 3 meses</option>
+                            <option value="180">Últimos 6 meses</option>
+                            <option value="custom">Personalizado</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group date-range hidden" id="custom-date-range">
+                        <label for="transaction-start-date">De:</label>
+                        <input type="date" id="transaction-start-date" class="filter-date">
+                        <label for="transaction-end-date">Até:</label>
+                        <input type="date" id="transaction-end-date" class="filter-date">
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="transaction-type">Tipo:</label>
+                        <select id="transaction-type" class="filter-select">
+                            <option value="all" selected>Todos</option>
+                            <option value="CREDIT">Entradas</option>
+                            <option value="DEBIT">Saídas</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <button type="button" class="btn btn-primary" id="apply-filters-btn">
+                            <i class="fas fa-filter"></i> Filtrar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Search -->
+                <div class="transactions-search">
+                    <div class="search-input-container">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" id="transaction-search" placeholder="Buscar transações..." class="search-input">
+                    </div>
+                </div>
+
+                <!-- Transactions Table -->
+                <div class="transactions-table-container">
+                    <table class="transactions-table" id="transactions-table">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Descrição</th>
+                                <th>Categoria</th>
+                                <th>Valor</th>
+                                <th>Saldo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactions-table-body">
+                            <!-- Transactions will be added here dynamically -->
+                        </tbody>
+                    </table>
+
+                    <!-- Loading indicator -->
+                    <div id="transactions-loading" class="transactions-loading hidden">
+                        <div class="spinner"></div>
+                        <p>Carregando transações...</p>
+                    </div>
+
+                    <!-- Empty state -->
+                    <div id="transactions-empty" class="transactions-empty hidden">
+                        <i class="fas fa-search"></i>
+                        <p>Nenhuma transação encontrada</p>
+                        <p>Tente ajustar os filtros ou período de busca</p>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="transactions-pagination" id="transactions-pagination">
+                    <button type="button" class="pagination-btn" id="prev-page-btn" disabled>
+                        <i class="fas fa-chevron-left"></i> Anterior
+                    </button>
+                    <div class="pagination-info">
+                        Página <span id="current-page">1</span> de <span id="total-pages">1</span>
+                    </div>
+                    <button type="button" class="pagination-btn" id="next-page-btn" disabled>
+                        Próxima <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" id="export-transactions-btn">
+                    <i class="fas fa-file-export"></i> Exportar
+                </button>
+                <button type="button" class="btn btn-primary" id="close-transactions-btn">Fechar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Fallback styles (in case CSS fails to load) -->
     <script src="js/fallback-styles.js"></script>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/utils.js"></script>
     <script src="js/config.js"></script>
     <script src="js/cache-manager.js"></script>
     <script src="js/api-manager.js"></script>

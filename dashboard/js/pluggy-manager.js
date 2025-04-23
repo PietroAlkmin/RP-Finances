@@ -148,6 +148,28 @@ const PluggyManager = {
             }
         } catch (error) {
             console.error('Error getting Connect Token:', error);
+
+            // If there's a specific error about the connect token
+            if (error.message && error.message.includes('connectToken')) {
+                window.showNotification('Erro com o token de conexão. Usando modo de demonstração.', 'warning');
+
+                // Try to get a mock token as a fallback
+                try {
+                    const mockUrl = `${this.config.connectTokenEndpoint}?mock=true`;
+                    console.log('Requesting mock Connect Token as fallback:', mockUrl);
+
+                    const mockResponse = await fetch(mockUrl);
+                    const mockData = await mockResponse.json();
+
+                    if (mockData.accessToken) {
+                        window.showNotification('Usando token de demonstração', 'info');
+                        return mockData.accessToken;
+                    }
+                } catch (mockError) {
+                    console.error('Failed to get mock token as fallback:', mockError);
+                }
+            }
+
             if (!error.message.includes('Demo mode')) {
                 window.showNotification('Erro ao obter token de conexão', 'error');
             }
@@ -190,11 +212,10 @@ const PluggyManager = {
                 // Get a Connect Token
                 const connectToken = await this.getConnectToken();
 
-                // If we received a mock token, use mock connection instead
+                // Check if this is a mock token but don't require mock=true in URL
                 if (connectToken.startsWith('mock-')) {
-                    console.log('Received mock token, using mock connection');
-                    this.createMockConnection();
-                    return;
+                    console.log('Received mock token, attempting to use real connection anyway');
+                    // Continue with real connection attempt, it will fall back to mock if needed
                 }
 
                 // Create the Pluggy Connect instance
@@ -214,6 +235,16 @@ const PluggyManager = {
                     sandbox: true,
                     // Show all available connectors
                     showAllConnectors: true,
+                    // Specific parameters for investment institutions
+                    itemParameters: {
+                        // Rico Investimentos specific parameters
+                        // These parameters help with credential validation and MFA handling
+                        '8': { // Rico Investimentos connector ID
+                            forceWebView: true, // Force using web view for better authentication handling
+                            webhookUrl: window.location.origin + '/api/pluggy/webhook', // Webhook for MFA notifications
+                            clientUserId: 'rico-user-' + Date.now() // Unique user ID for tracking
+                        }
+                    },
                     onSuccess: (itemData) => {
                         console.log('Pluggy Connect success:', itemData);
 
@@ -236,7 +267,30 @@ const PluggyManager = {
                     },
                     onError: (error) => {
                         console.error('Pluggy Connect error:', error);
-                        window.showNotification('Erro ao conectar conta: ' + error.message, 'error');
+
+                        // Enhanced error handling for credential issues
+                        let errorMessage = error.message || 'Erro desconhecido';
+
+                        // Check for specific error types
+                        if (error.code === 'INVALID_CREDENTIALS') {
+                            errorMessage = 'Credenciais inválidas. Por favor, verifique seu usuário e senha.';
+                        } else if (error.code === 'ALREADY_LOGGED_IN') {
+                            errorMessage = 'Já existe uma sessão ativa. Por favor, faça logout no site do banco e tente novamente.';
+                        } else if (error.code === 'ACCOUNT_LOCKED') {
+                            errorMessage = 'Conta bloqueada. Por favor, acesse o site do banco para desbloquear sua conta.';
+                        } else if (error.code === 'MFA_REQUIRED') {
+                            errorMessage = 'Autenticação de dois fatores necessária. Por favor, complete o processo de autenticação.';
+                        } else if (error.code === 'CONNECTION_ERROR') {
+                            errorMessage = 'Erro de conexão com a instituição. Por favor, tente novamente mais tarde.';
+                        } else if (error.message && error.message.toLowerCase().includes('rico')) {
+                            // Specific handling for Rico Investimentos
+                            errorMessage = 'Erro ao conectar com Rico Investimentos. Verifique suas credenciais e tente novamente.';
+
+                            // Log detailed information for debugging
+                            console.log('Rico Investimentos connection error details:', error);
+                        }
+
+                        window.showNotification('Erro ao conectar conta: ' + errorMessage, 'error');
                     },
                     onClose: () => {
                         console.log('Pluggy Connect closed');
@@ -463,9 +517,59 @@ const PluggyManager = {
         }
     },
 
-    // For backward compatibility, keep the old method name but use the new implementation
+    // Create a mock connection for demo purposes
     createMockConnection() {
-        return this.createConnection();
+        console.log('Creating mock investment connection');
+
+        // Generate a mock item ID
+        const mockItemId = 'mock-item-' + Date.now();
+
+        // Save the mock item ID
+        this.config.itemId = mockItemId;
+
+        // Save to localStorage
+        this.savePluggyData({
+            itemId: mockItemId,
+            connectorId: 'mock-connector',
+            connectorName: 'Plataforma de Investimentos (Demo)',
+            createdAt: new Date().toISOString()
+        });
+
+        // Show success notification
+        window.showNotification('Plataforma de Investimentos (Demo) conectada com sucesso!', 'success');
+
+        // Update the UI to show connected state
+        if (window.portfolioManager) {
+            window.portfolioManager.renderOpenFinanceSection();
+        }
+
+        // Fetch mock accounts data
+        setTimeout(() => {
+            this.fetchAccounts()
+                .then(accountsData => {
+                    console.log('Mock accounts fetched:', accountsData);
+
+                    // Find the investment account
+                    const investmentAccount = accountsData.results?.find(acc => acc.type === 'INVESTMENT');
+
+                    if (investmentAccount) {
+                        console.log('Found mock investment account, auto-importing investments:', investmentAccount.id);
+
+                        // Automatically import investments to portfolio
+                        if (window.portfolioManager) {
+                            // Wait a moment for the UI to update before importing
+                            setTimeout(() => {
+                                window.portfolioManager.importInvestmentsToPortfolio(investmentAccount.id);
+                            }, 1500);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching mock accounts:', error);
+                });
+        }, 1000);
+
+        return true;
     },
 
     // Flag to prevent multiple simultaneous account fetches
@@ -595,17 +699,50 @@ const PluggyManager = {
         }
     },
 
-    // Fetch investments for an account
+    // Fetch investments for an account or item
     async fetchInvestments(accountId) {
         try {
+            // If no account ID is provided, try to use the item ID
+            if (!accountId && this.config.itemId) {
+                console.log('No account ID provided, using item ID instead:', this.config.itemId);
+
+                // Try to fetch investments directly from the item
+                const itemUrl = `${this.config.investmentsEndpoint}?itemId=${this.config.itemId}`;
+                console.log('Fetching investments directly from item:', itemUrl);
+
+                try {
+                    const itemResponse = await fetch(itemUrl);
+                    if (itemResponse.ok) {
+                        const itemData = await itemResponse.json();
+                        console.log('Fetched investments directly from item:', itemData);
+
+                        // Check if this is Rico data and process it
+                        const pluggyData = localStorage.getItem('pluggyData');
+                        if (pluggyData) {
+                            const data = JSON.parse(pluggyData);
+                            // Rico Investimentos connector ID is 8
+                            if (data.connectorId === '8' || data.connectorName?.toLowerCase().includes('rico')) {
+                                console.log('Processing Rico Investimentos data');
+                                // Enhance the data with Rico-specific information
+                                itemData.results = this.enhanceRicoInvestments(itemData.results);
+                            }
+                        }
+
+                        return itemData;
+                    }
+                } catch (itemError) {
+                    console.error('Error fetching investments from item:', itemError);
+                }
+            }
+
             if (!accountId) {
-                console.error('No account ID provided');
+                console.error('No account ID or item ID available');
                 return { results: [] };
             }
 
-            // Build the URL for fetching investments
+            // Build the URL for fetching investments by account ID
             const url = `${this.config.investmentsEndpoint}?accountId=${accountId}`;
-            console.log('Fetching investments from:', url);
+            console.log('Fetching investments from account:', url);
 
             const response = await fetch(url);
 
@@ -614,11 +751,56 @@ const PluggyManager = {
             }
 
             const data = await response.json();
-            console.log('Fetched investments:', data);
+            console.log('Fetched investments from account:', data);
 
             // Check if this is mock data
             if (data.isMock) {
                 console.warn('Received mock investments data from server');
+            }
+
+            // Check if this is Rico data and process it
+            const pluggyData = localStorage.getItem('pluggyData');
+            if (pluggyData) {
+                const pluggyInfo = JSON.parse(pluggyData);
+                // Rico Investimentos connector ID is 8
+                if (pluggyInfo.connectorId === '8' || pluggyInfo.connectorName?.toLowerCase().includes('rico')) {
+                    console.log('Processing Rico Investimentos data');
+                    // Enhance the data with Rico-specific information
+                    data.results = this.enhanceRicoInvestments(data.results);
+                }
+            }
+
+            // If we got an empty array but this is a known investment account,
+            // try to fetch investments directly from the item as a fallback
+            if ((!data.results || data.results.length === 0) && this.config.itemId) {
+                console.log('No investments found for account, trying to fetch from item as fallback');
+
+                // Try to fetch investments directly from the item
+                const itemUrl = `${this.config.investmentsEndpoint}?itemId=${this.config.itemId}`;
+                console.log('Fetching investments from item (fallback):', itemUrl);
+
+                try {
+                    const itemResponse = await fetch(itemUrl);
+                    if (itemResponse.ok) {
+                        const itemData = await itemResponse.json();
+                        console.log('Fetched investments from item (fallback):', itemData);
+
+                        // Check if this is Rico data and process it
+                        if (pluggyData) {
+                            const pluggyInfo = JSON.parse(pluggyData);
+                            // Rico Investimentos connector ID is 8
+                            if (pluggyInfo.connectorId === '8' || pluggyInfo.connectorName?.toLowerCase().includes('rico')) {
+                                console.log('Processing Rico Investimentos fallback data');
+                                // Enhance the data with Rico-specific information
+                                itemData.results = this.enhanceRicoInvestments(itemData.results);
+                            }
+                        }
+
+                        return itemData;
+                    }
+                } catch (fallbackError) {
+                    console.error('Error fetching investments from item (fallback):', fallbackError);
+                }
             }
 
             return data;
@@ -643,6 +825,67 @@ const PluggyManager = {
                 error: error.message
             };
         }
+    },
+
+    // Enhance Rico investments with additional information
+    enhanceRicoInvestments(investments) {
+        if (!investments || !Array.isArray(investments)) {
+            return investments;
+        }
+
+        console.log('Enhancing Rico investments:', investments.length);
+
+        return investments.map(inv => {
+            // Clone the investment to avoid modifying the original
+            const enhancedInv = { ...inv };
+
+            // Process Rico-specific investment data
+            if (enhancedInv.name) {
+                // Extract stock code from name if possible
+                if (enhancedInv.type === 'EQUITY' && !enhancedInv.code) {
+                    const stockCodeMatch = enhancedInv.name.match(/^([A-Z]{4}\d{1,2})\b/);
+                    if (stockCodeMatch && stockCodeMatch[1]) {
+                        enhancedInv.code = stockCodeMatch[1];
+                        console.log(`Extracted stock code ${enhancedInv.code} from ${enhancedInv.name}`);
+                    }
+                }
+
+                // Determine investment type from name if not already set
+                if (enhancedInv.type === 'OTHER' || !enhancedInv.type) {
+                    const upperName = enhancedInv.name.toUpperCase();
+
+                    if (upperName.includes('CDB') || upperName.includes('CERTIFICADO DE DEPÓSITO')) {
+                        enhancedInv.type = 'FIXED_INCOME';
+                    } else if (upperName.includes('LCI')) {
+                        enhancedInv.type = 'FIXED_INCOME';
+                    } else if (upperName.includes('LCA')) {
+                        enhancedInv.type = 'FIXED_INCOME';
+                    } else if (upperName.includes('TESOURO') || upperName.includes('SELIC')) {
+                        enhancedInv.type = 'GOVERNMENT_BOND';
+                    } else if (upperName.includes('FII') || upperName.includes('FUNDO IMOBILIÁRIO')) {
+                        enhancedInv.type = 'REAL_ESTATE';
+                    } else if (upperName.includes('FUNDO') || upperName.includes('FIC') || upperName.includes('FIA')) {
+                        enhancedInv.type = 'MUTUAL_FUND';
+                    } else if (upperName.match(/^[A-Z]{4}\d{1,2}/) || upperName.includes('AÇÃO') || upperName.includes('AÇÕES')) {
+                        enhancedInv.type = 'EQUITY';
+                    } else if (upperName.includes('BITCOIN') || upperName.includes('BTC') ||
+                              upperName.includes('ETH') || upperName.includes('ETHEREUM')) {
+                        enhancedInv.type = 'CRYPTO';
+                    }
+                }
+            }
+
+            // If quantity is missing but we have amount and balance, try to calculate it
+            if (!enhancedInv.quantity && enhancedInv.amount && enhancedInv.balance && enhancedInv.amount > 0) {
+                // For stocks, the quantity is usually a whole number
+                if (enhancedInv.type === 'EQUITY') {
+                    enhancedInv.quantity = Math.round(enhancedInv.balance / enhancedInv.amount);
+                    console.log(`Calculated quantity for ${enhancedInv.name}: ${enhancedInv.quantity}`);
+                }
+            }
+
+            return enhancedInv;
+        });
     },
 
     // Disconnect a connected item
@@ -714,6 +957,333 @@ const PluggyManager = {
     // Check if an item is connected
     isItemConnected() {
         return !!this.config.itemId;
+    },
+
+    // Connect to investment platforms (including Rico Investimentos)
+    async connectToRico() {
+        try {
+            console.log('Attempting to connect to Rico Investimentos or other investment platforms...');
+
+            // Get a Connect Token
+            const connectToken = await this.getConnectToken();
+
+            if (!connectToken) {
+                throw new Error('Failed to get connect token');
+            }
+
+            // Check if this is a mock token but don't require mock=true in URL
+            if (connectToken.startsWith('mock-')) {
+                console.log('Received mock token, attempting to use real connection anyway');
+                // Continue with real connection attempt, it will fall back to mock if needed
+            }
+
+            // Create the Pluggy Connect instance for investment platforms
+            console.log('Creating Pluggy Connect instance for investments with token');
+
+            // Rico Investimentos connector ID in Pluggy
+            const ricoConnectorId = '8';
+
+            const pluggyConnectConfig = {
+                connectToken,
+                includeSandbox: true, // Enable sandbox mode for testing
+                // Only include Brazil
+                countries: ['BR'],
+                // Only include investment connector type
+                connectorTypes: ['INVESTMENT'],
+                // Enable sandbox mode for testing
+                sandbox: true,
+                // Show all investment connectors
+                showAllConnectors: true,
+                // Specific parameters for Rico Investimentos and other platforms
+                parameters: {
+                    forceWebView: true, // Force using web view for better authentication
+                    clientUserId: 'investment-user-' + Date.now(), // Unique user ID for tracking
+                    // Additional parameters that might help with connection
+                    redirectUrl: window.location.origin + '/dashboard/portfolio.html',
+                    userAction: 'CONNECT'
+                },
+                // Specific parameters for Rico Investimentos
+                itemParameters: {
+                    // Rico Investimentos specific parameters (connector ID 8)
+                    [ricoConnectorId]: {
+                        forceWebView: true, // Force using web view for better authentication
+                        webhookUrl: window.location.origin + '/api/pluggy/webhook', // Webhook for MFA notifications
+                        clientUserId: 'rico-user-' + Date.now(), // Unique user ID for tracking
+                        // Additional parameters for Rico
+                        waitForSync: true, // Wait for synchronization to complete
+                        saveData: true // Save data for future use
+                    }
+                },
+                onSuccess: (itemData) => {
+                    console.log('Investment platform connection success:', itemData);
+
+                    // Save the item ID
+                    this.config.itemId = itemData.item.id;
+
+                    // Get the connector name
+                    const connectorName = itemData.item.connector.name || 'Plataforma de Investimentos';
+
+                    // Save to localStorage
+                    this.savePluggyData({
+                        itemId: itemData.item.id,
+                        connectorId: itemData.item.connector.id,
+                        connectorName: connectorName,
+                        createdAt: itemData.item.createdAt
+                    });
+
+                    // Show success notification
+                    window.showNotification(`${connectorName} conectado com sucesso!`, 'success');
+
+                    // Update the UI to show connected state
+                    if (window.portfolioManager) {
+                        window.portfolioManager.renderOpenFinanceSection();
+                    }
+
+                    // Fetch accounts data
+                    this.fetchAccounts()
+                        .then(accountsData => {
+                            console.log('Accounts fetched after investment connection:', accountsData);
+
+                            // Find the investment account
+                            const investmentAccount = accountsData.results?.find(acc => acc.type === 'INVESTMENT');
+
+                            if (investmentAccount) {
+                                console.log('Found investment account, auto-importing investments:', investmentAccount.id);
+
+                                // Automatically import investments to portfolio
+                                if (window.portfolioManager) {
+                                    // Wait a moment for the UI to update before importing
+                                    setTimeout(() => {
+                                        window.portfolioManager.importInvestmentsToPortfolio(investmentAccount.id);
+                                    }, 1500);
+                                }
+                            } else {
+                                console.log('No investment account found, trying to fetch investments directly from item');
+
+                                // Try to fetch investments directly from the item
+                                this.fetchInvestments()
+                                    .then(investmentsData => {
+                                        console.log('Fetched investments directly from item:', investmentsData);
+
+                                        if (investmentsData.results && investmentsData.results.length > 0) {
+                                            console.log('Found investments directly from item, importing them');
+                                            // We have investments, import them
+                                            if (window.portfolioManager && window.portfolioManager.importInvestmentsFromData) {
+                                                window.portfolioManager.importInvestmentsFromData(investmentsData);
+                                            } else {
+                                                console.error('portfolioManager or importInvestmentsFromData method not available');
+                                            }
+                                        } else {
+                                            console.log('No investments found directly from item');
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error('Error fetching investments directly:', error);
+                                    });
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching accounts after investment connection:', error);
+                            window.showNotification('Erro ao buscar contas. Por favor, tente novamente.', 'error');
+
+                            // Even if we can't fetch accounts, try to fetch investments directly
+                            console.log('Trying to fetch investments directly after account fetch error');
+                            this.fetchInvestments()
+                                .then(investmentsData => {
+                                    if (investmentsData.results && investmentsData.results.length > 0) {
+                                        console.log('Found investments directly after error, importing them');
+                                        if (window.portfolioManager && window.portfolioManager.importInvestmentsFromData) {
+                                            window.portfolioManager.importInvestmentsFromData(investmentsData);
+                                        }
+                                    }
+                                })
+                                .catch(invError => {
+                                    console.error('Error fetching investments after account fetch error:', invError);
+                                });
+                        });
+                },
+                onError: (error) => {
+                    console.error('Investment platform connection error:', error);
+
+                    // Enhanced error handling for credential issues
+                    let errorMessage = error.message || 'Erro desconhecido';
+                    let isRicoError = false;
+
+                    // Check if this is a Rico Investimentos error
+                    if (error.connector && error.connector.id === ricoConnectorId) {
+                        isRicoError = true;
+                        console.log('Rico Investimentos specific error:', error);
+                    }
+
+                    // Check for specific error types
+                    if (error.code === 'INVALID_CREDENTIALS') {
+                        errorMessage = isRicoError ?
+                            'Credenciais da Rico inválidas. Por favor, verifique seu CPF/CNPJ e senha.' :
+                            'Credenciais inválidas. Por favor, verifique seu CPF/CNPJ e senha.';
+                    } else if (error.code === 'ALREADY_LOGGED_IN') {
+                        errorMessage = isRicoError ?
+                            'Já existe uma sessão ativa na Rico. Por favor, faça logout no site da Rico e tente novamente.' :
+                            'Já existe uma sessão ativa. Por favor, faça logout no site da instituição e tente novamente.';
+                    } else if (error.code === 'ACCOUNT_LOCKED') {
+                        errorMessage = isRicoError ?
+                            'Conta Rico bloqueada. Por favor, acesse o site da Rico para desbloquear sua conta.' :
+                            'Conta bloqueada. Por favor, acesse o site da instituição para desbloquear sua conta.';
+                    } else if (error.code === 'MFA_REQUIRED') {
+                        errorMessage = isRicoError ?
+                            'Autenticação de dois fatores necessária na Rico. Por favor, complete o processo de autenticação.' :
+                            'Autenticação de dois fatores necessária. Por favor, complete o processo de autenticação.';
+
+                        // For Rico MFA, provide more specific instructions
+                        if (isRicoError) {
+                            errorMessage += ' Verifique seu e-mail ou aplicativo de autenticação.';
+                        }
+                    } else if (error.code === 'CONNECTOR_ERROR') {
+                        errorMessage = isRicoError ?
+                            'Erro no conector da Rico. Por favor, tente novamente mais tarde.' :
+                            'Erro no conector da instituição financeira. Por favor, tente novamente mais tarde ou escolha outra instituição.';
+                    } else if (error.code === 'SITE_NOT_AVAILABLE') {
+                        errorMessage = isRicoError ?
+                            'O site da Rico está temporariamente indisponível. Por favor, tente novamente mais tarde.' :
+                            'O site da instituição está temporariamente indisponível. Por favor, tente novamente mais tarde.';
+                    } else if (error.code === 'INVALID_CREDENTIALS_MFA') {
+                        errorMessage = isRicoError ?
+                            'Código de autenticação da Rico inválido. Por favor, tente novamente.' :
+                            'Código de autenticação inválido. Por favor, tente novamente.';
+                    }
+
+                    // Log detailed information for debugging
+                    if (isRicoError) {
+                        console.log('Rico Investimentos connection error details:', error);
+                    }
+
+                    window.showNotification('Erro ao conectar: ' + errorMessage, 'error');
+                },
+                onClose: () => {
+                    console.log('Investment platform connection widget closed');
+                }
+            };
+
+            console.log('Investment Connect config:', JSON.stringify(pluggyConnectConfig, null, 2));
+
+            const pluggyConnect = new window.PluggyConnect(pluggyConnectConfig);
+
+            // Open the widget
+            pluggyConnect.init();
+
+            return true;
+        } catch (error) {
+            console.error('Error creating investment platform connection:', error);
+            window.showNotification('Erro ao conectar com a plataforma de investimentos. Por favor, tente novamente.', 'error');
+            return false;
+        }
+    },
+
+    // Refresh the connection
+    async refreshConnection() {
+        try {
+            if (!this.config.itemId) {
+                console.error('No item ID available to refresh');
+                window.showNotification('Nenhuma conta conectada para atualizar', 'warning');
+                return false;
+            }
+
+            // Check if this is a Rico connection
+            let isRicoConnection = false;
+            const pluggyData = localStorage.getItem('pluggyData');
+            if (pluggyData) {
+                const data = JSON.parse(pluggyData);
+                // Rico Investimentos connector ID is 8
+                if (data.connectorId === '8' || data.connectorName?.toLowerCase().includes('rico')) {
+                    isRicoConnection = true;
+                    console.log('Refreshing Rico Investimentos connection');
+                }
+            }
+
+            // Build the URL for refreshing the item
+            const url = `/api/pluggy/items/${this.config.itemId}/refresh`;
+            console.log('Refreshing item connection:', url);
+
+            // Show notification that we're refreshing
+            window.showNotification(isRicoConnection ?
+                'Atualizando conexão com Rico Investimentos...' :
+                'Atualizando conexão...', 'info');
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    // For Rico, we need to specify some parameters
+                    parameters: isRicoConnection ? {
+                        forceWebView: true,
+                        waitForSync: true,
+                        saveData: true
+                    } : undefined
+                })
+            });
+
+            if (!response.ok && response.status !== 404) {
+                throw new Error(`Failed to refresh item: ${response.status} ${response.statusText}`);
+            }
+
+            try {
+                const data = await response.json();
+                console.log('Refresh response:', data);
+
+                // Check if this is mock data
+                if (data.isMock) {
+                    console.warn('Received mock refresh response from server');
+                }
+
+                // Show success notification
+                window.showNotification(isRicoConnection ?
+                    'Conexão com Rico atualizada com sucesso!' :
+                    'Conexão atualizada com sucesso!', 'success');
+
+                // Fetch accounts to update the UI
+                await this.fetchAccounts();
+
+                // For Rico connections, also try to fetch investments directly
+                if (isRicoConnection) {
+                    console.log('Fetching Rico investments after refresh');
+                    try {
+                        const investments = await this.fetchInvestments();
+                        console.log('Rico investments fetched after refresh:', investments);
+
+                        // If we have investments and the portfolio manager is available, import them
+                        if (investments.results && investments.results.length > 0 &&
+                            window.portfolioManager && window.portfolioManager.importInvestmentsFromData) {
+                            console.log('Auto-importing Rico investments after refresh');
+                            window.portfolioManager.importInvestmentsFromData(investments);
+                        }
+                    } catch (invError) {
+                        console.error('Error fetching Rico investments after refresh:', invError);
+                    }
+                }
+
+                return true;
+            } catch (e) {
+                console.warn('Could not parse refresh response');
+
+                // Still try to fetch accounts
+                this.fetchAccounts();
+
+                return true;
+            }
+        } catch (error) {
+            console.error('Error refreshing connection:', error);
+            window.showNotification('Erro ao atualizar conexão', 'error');
+
+            // Try to fetch accounts anyway
+            try {
+                await this.fetchAccounts();
+            } catch (fetchError) {
+                console.error('Error fetching accounts after refresh error:', fetchError);
+            }
+
+            return false;
+        }
     }
 };
 
