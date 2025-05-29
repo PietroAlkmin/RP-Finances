@@ -57,7 +57,7 @@ const CONFIG = {
         polygon: 'DEMO_KEY', // Chave demo para Polygon.io
         brapi: '5gqN7YFNFzWD28VXADXHNV', // Chave PRO para brapi.dev (ações brasileiras)
         fred: '79d701bccfad503602710ec931fc09b9', // Chave para FRED API
-        gnews: '4e4869808f12183074b165f43ef3de7f', // Chave para GNews API
+        gnews: '4e4869808f12183074b165f43ef3ef7f', // Chave para GNews API
     },
 
     // Endpoints de API

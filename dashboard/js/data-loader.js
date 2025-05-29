@@ -19,6 +19,16 @@ const dashboardData = {
     dataLoaded: false
 };
 
+// Objeto global para armazenar dados de melhores ativos
+const bestAssetsData = {
+    assets: null,
+    categories: null,
+    period: null,
+    assetType: null,
+    dataLoaded: false,
+    lastUpdate: null
+};
+
 /**
  * Carrega todos os dados necessários para o dashboard principal
  */
@@ -73,7 +83,7 @@ async function loadAllData() {
         const sectorsData = processSectorsData(stocksData);
 
         // Calcular correlações entre índices
-        const correlationsData = calculateCorrelations(indicesData);
+        const correlationsData = calculateCorrelations();
 
         // Gerar resumo do mercado
         const marketSummaryData = generateMarketSummary(indicesData, stocksData, regionsData, sectorsData);
@@ -81,15 +91,16 @@ async function loadAllData() {
         // Obter dados de criptomoedas (sem fallback para dados simulados)
         let cryptoData;
         try {
-            cryptoData = await fetchCryptoData();
+            // Usar função do crypto-loader.js
+            cryptoData = await loadCryptoMarketData(['bitcoin', 'ethereum'], 'usd');
             dashboardData.cryptoError = false;
         } catch (error) {
             console.error('Erro ao carregar criptomoedas:', error);
             dashboardData.cryptoError = true;
             // Usar dados em cache se disponíveis
-            if (dashboardData.crypto) {
+            if (dashboardData.cryptoMarket) {
                 console.log('Usando dados de crypto do cache após erro na API');
-                cryptoData = dashboardData.crypto;
+                cryptoData = dashboardData.cryptoMarket;
             } else {
                 console.error('Não foi possível carregar dados de criptomoedas');
                 throw error;
@@ -159,9 +170,8 @@ async function loadBestAssetsData(period = 'week', assetType = 'all') {
             return true;
         }
 
-        // Obter dados reais da API Alpha Vantage ou usar dados simulados como fallback
+        // Obter dados reais da API Alpha Vantage
         let assetsData;
-        let apiSuccess = false;
 
         try {
             // Tentar obter dados da API
@@ -183,15 +193,8 @@ async function loadBestAssetsData(period = 'week', assetType = 'all') {
             const errorMessage = document.getElementById('error-message');
             if (errorMessage) errorMessage.classList.remove('hidden');
 
-            // Obter dados simulados
-            try {
-                const simulatedData = await fetchAssetsData(period, assetType);
-                assetsData = simulatedData;
-                console.log('Dados simulados carregados com sucesso');
-            } catch (simError) {
-                console.error('Erro ao carregar dados simulados:', simError);
-                throw new Error('Falha ao carregar dados reais e simulados');
-            }
+            // Não usar dados simulados - propagar erro
+            throw new Error('Falha ao carregar dados reais da API');
         }
 
         // Verificar se temos dados válidos
@@ -418,26 +421,8 @@ async function fetchAssetsDataFromAPI(period, assetType) {
                 console.warn(`Erro ao obter dados para ${symbol}:`, error.message);
             }
 
-            // Usar dados simulados para este símbolo
-            const assetInfo = sectorMap[symbol] || { type: 'stocks', name: 'Outros' };
-
-            results.push({
-                symbol: symbol,
-                name: symbol.replace('.SA', '').replace('.', ' '),
-                type: assetInfo.type,
-                last_price: symbol === 'AAPL' ? 175 + (Math.random() * 10 - 5) :
-                           symbol === 'MSFT' ? 410 + (Math.random() * 15 - 7.5) :
-                           symbol === 'GOOGL' ? 150 + (Math.random() * 8 - 4) :
-                           symbol === 'AMZN' ? 180 + (Math.random() * 10 - 5) :
-                           symbol === 'TSLA' ? 190 + (Math.random() * 15 - 7.5) :
-                           symbol.includes('BTC') ? 65000 + (Math.random() * 3000 - 1500) :
-                           100 + (Math.random() * 50 - 25),
-                week_return: (Math.random() * 6 - 2),
-                month_return: (Math.random() * 10 - 3),
-                year_return: (Math.random() * 30 - 10),
-                volume: 1000000 + (Math.random() * 10000000),
-                trend: Math.random() > 0.4 ? 'Alta' : 'Baixa'
-            });
+            // Não usar dados simulados - apenas registrar o erro
+            console.warn(`Dados não disponíveis para ${symbol}`);
         }
     }
 
@@ -707,66 +692,6 @@ async function fetchIndicesData() {
 }
 
 // Função de simulação de índices removida - usando apenas dados reais das APIs
-        {
-            symbol: '^IXIC',
-            name: 'Nasdaq',
-            region: 'US',
-            last_price: 16500 + (Math.random() * 150 - 75),
-            hours24_return: 0.4 + (Math.random() * 1 - 0.5),
-            month_return: 3.2 + (Math.random() * 2 - 1),
-            ytd_return: 10.5 + (Math.random() * 3 - 1.5),
-            year12_return: 18.7 + (Math.random() * 5 - 2.5)
-        },
-        {
-            symbol: '^FTSE',
-            name: 'FTSE 100',
-            region: 'UK',
-            last_price: 7800 + (Math.random() * 80 - 40),
-            hours24_return: 0.1 + (Math.random() * 0.6 - 0.3),
-            month_return: 1.2 + (Math.random() * 2 - 1),
-            ytd_return: 4.7 + (Math.random() * 3 - 1.5),
-            year12_return: 9.8 + (Math.random() * 5 - 2.5)
-        },
-        {
-            symbol: '^GDAXI',
-            name: 'DAX',
-            region: 'EU',
-            last_price: 18200 + (Math.random() * 180 - 90),
-            hours24_return: 0.2 + (Math.random() * 0.8 - 0.4),
-            month_return: 2.0 + (Math.random() * 2 - 1),
-            ytd_return: 7.8 + (Math.random() * 3 - 1.5),
-            year12_return: 14.2 + (Math.random() * 5 - 2.5)
-        },
-        {
-            symbol: '^FCHI',
-            name: 'CAC 40',
-            region: 'EU',
-            last_price: 7900 + (Math.random() * 80 - 40),
-            hours24_return: 0.15 + (Math.random() * 0.7 - 0.35),
-            month_return: 1.8 + (Math.random() * 2 - 1),
-            ytd_return: 6.9 + (Math.random() * 3 - 1.5),
-            year12_return: 13.4 + (Math.random() * 5 - 2.5)
-        },
-        {
-            symbol: '^N225',
-            name: 'Nikkei 225',
-            region: 'JP',
-            last_price: 38500 + (Math.random() * 350 - 175),
-            hours24_return: 0.25 + (Math.random() * 0.9 - 0.45),
-            month_return: 2.3 + (Math.random() * 2 - 1),
-            ytd_return: 9.1 + (Math.random() * 3 - 1.5),
-            year12_return: 17.5 + (Math.random() * 5 - 2.5)
-        },
-        {
-            symbol: '^HSI',
-            name: 'Hang Seng',
-            region: 'HK',
-            last_price: 16800 + (Math.random() * 160 - 80),
-            hours24_return: -0.3 + (Math.random() * 1 - 0.5),
-            month_return: -2.1 + (Math.random() * 2 - 1),
-            ytd_return: -4.8 + (Math.random() * 3 - 1.5),
-            year12_return: -11.3 + (Math.random() * 5 - 2.5)
-        },
 
 
 /**
@@ -874,7 +799,7 @@ async function fetchStocksData() {
 
                         // Calcular volume médio
                         const avgVolume = quote.volume.reduce((sum, val) => sum + (val || 0), 0) /
-                                         quote.volume.filter(vol => vol !== null && vol !== undefined).length;
+                                        quote.volume.filter(vol => vol !== null && vol !== undefined).length;
 
                         // Adicionar ao resultado
                         results.push({
@@ -1377,7 +1302,7 @@ function processSectorsData(stocksData) {
 /**
  * Calcula correlações entre índices (função removida - correlações simuladas removidas)
  */
-function calculateCorrelations(indicesData) {
+function calculateCorrelations() {
     // Retornar array vazio - correlações reais requerem dados históricos complexos
     console.warn('Cálculo de correlações desabilitado - requer dados históricos reais');
     return [];

@@ -105,13 +105,8 @@ async function loadCryptoMarketData(coinIds = ['bitcoin', 'ethereum', 'binanceco
 
             console.log('Dados de criptomoedas recebidos:', data.length, 'moedas');
 
-            // Adicionar dados simulados para as moedas restantes
+            // Usar apenas dados reais da API
             let result = [...data];
-            if (coinIds.length > limitedCoinIds.length) {
-                const remainingCoinIds = coinIds.slice(limitedCoinIds.length);
-                const simulatedData = simulateCryptoMarketData(remainingCoinIds);
-                result = result.concat(simulatedData);
-            }
 
             // Salvar no cache
             CacheManager.saveToCache(cacheKey, result, CONFIG.cache.ttl.crypto);
@@ -123,7 +118,7 @@ async function loadCryptoMarketData(coinIds = ['bitcoin', 'ethereum', 'binanceco
         }
     } catch (error) {
         console.error('Erro ao carregar dados de criptomoedas:', error);
-        return simulateCryptoMarketData(coinIds);
+        throw error; // Propagar erro em vez de usar dados simulados
     }
 }
 
@@ -177,141 +172,13 @@ async function loadCryptoDetails(coinId = 'bitcoin') {
         }
     } catch (error) {
         console.error('Erro ao carregar detalhes de criptomoeda:', error);
-        return simulateCryptoDetails(coinId);
+        throw error; // Propagar erro em vez de usar dados simulados
     }
 }
 
-/**
- * Simula dados de mercado de criptomoedas quando a API falha
- */
-function simulateCryptoMarketData(coinIds) {
-    console.warn('Usando dados simulados de criptomoedas');
+// Função de simulação de dados de criptomoedas removida - usando apenas dados reais das APIs
 
-    const cryptoData = {
-        'bitcoin': {
-            id: 'bitcoin',
-            symbol: 'btc',
-            name: 'Bitcoin',
-            image: 'https://assets.coingecko.com/coins/images/1/large/bitcoin.png',
-            current_price: 63715.17,
-            market_cap: 1248275802934,
-            market_cap_rank: 1,
-            total_volume: 25392532591,
-            price_change_24h: 2215.17 * (Math.random() > 0.5 ? 1 : -1),
-            price_change_percentage_24h: 3.48 * (Math.random() > 0.5 ? 1 : -1),
-            price_change_percentage_7d: 5.12 * (Math.random() > 0.5 ? 1 : -1),
-            price_change_percentage_30d: 10.45 * (Math.random() > 0.5 ? 1 : -1),
-            sparkline_in_7d: { price: generateRandomPrices(24, 60000, 65000) }
-        },
-        'ethereum': {
-            id: 'ethereum',
-            symbol: 'eth',
-            name: 'Ethereum',
-            image: 'https://assets.coingecko.com/coins/images/279/large/ethereum.png',
-            current_price: 3117.08,
-            market_cap: 374259723649,
-            market_cap_rank: 2,
-            total_volume: 15987654321,
-            price_change_24h: 38.17 * (Math.random() > 0.5 ? 1 : -1),
-            price_change_percentage_24h: 1.23 * (Math.random() > 0.5 ? 1 : -1),
-            price_change_percentage_7d: 3.45 * (Math.random() > 0.5 ? 1 : -1),
-            price_change_percentage_30d: 8.76 * (Math.random() > 0.5 ? 1 : -1),
-            sparkline_in_7d: { price: generateRandomPrices(24, 3000, 3200) }
-        }
-    };
-
-    // Apenas Bitcoin e Ethereum são usados
-
-    // Retornar apenas as moedas solicitadas
-    return coinIds.map(id => cryptoData[id] || {
-        id: id,
-        symbol: id.substring(0, 3),
-        name: id.charAt(0).toUpperCase() + id.slice(1),
-        image: `https://assets.coingecko.com/coins/images/1/large/${id}.png`,
-        current_price: 1.0 + (Math.random() * 0.5),  // Valor mais realista para criptomoedas menos conhecidas
-        market_cap: 1000000000 + (Math.random() * 500000000),
-        market_cap_rank: 50 + Math.floor(Math.random() * 50),
-        total_volume: 100000000 + (Math.random() * 50000000),
-        price_change_24h: 0.05 * (Math.random() > 0.5 ? 1 : -1),
-        price_change_percentage_24h: 2 * (Math.random() > 0.5 ? 1 : -1),
-        price_change_percentage_7d: 5 * (Math.random() > 0.5 ? 1 : -1),
-        price_change_percentage_30d: 10 * (Math.random() > 0.5 ? 1 : -1),
-        sparkline_in_7d: { price: generateRandomPrices(24, 0.9, 1.1) }
-    });
-}
-
-/**
- * Simula dados detalhados de uma criptomoeda quando a API falha
- */
-function simulateCryptoDetails(coinId) {
-    console.warn(`Simulando detalhes para criptomoeda ${coinId}`);
-
-    // Dados básicos simulados
-    const baseDetails = {
-        id: coinId,
-        symbol: coinId.substring(0, 3),
-        name: coinId.charAt(0).toUpperCase() + coinId.slice(1),
-        description: {
-            en: `${coinId.charAt(0).toUpperCase() + coinId.slice(1)} é uma criptomoeda digital.`
-        },
-        image: {
-            thumb: `https://assets.coingecko.com/coins/images/1/thumb/${coinId}.png`,
-            small: `https://assets.coingecko.com/coins/images/1/small/${coinId}.png`,
-            large: `https://assets.coingecko.com/coins/images/1/large/${coinId}.png`
-        },
-        market_data: {
-            current_price: {
-                usd: 100 + (Math.random() * 50),
-                brl: (100 + (Math.random() * 50)) * 5
-            },
-            market_cap: {
-                usd: 10000000000 + (Math.random() * 5000000000)
-            },
-            total_volume: {
-                usd: 1000000000 + (Math.random() * 500000000)
-            },
-            price_change_percentage_24h: 5 * (Math.random() > 0.5 ? 1 : -1),
-            price_change_percentage_7d: 10 * (Math.random() > 0.5 ? 1 : -1),
-            price_change_percentage_30d: 20 * (Math.random() > 0.5 ? 1 : -1)
-        },
-        community_data: {
-            twitter_followers: 100000 + Math.floor(Math.random() * 900000),
-            reddit_subscribers: 50000 + Math.floor(Math.random() * 450000)
-        }
-    };
-
-    // Dados específicos para moedas conhecidas
-    if (coinId === 'bitcoin') {
-        baseDetails.name = 'Bitcoin';
-        baseDetails.symbol = 'btc';
-        baseDetails.description.en = 'Bitcoin é a primeira criptomoeda descentralizada do mundo, criada em 2009 por uma pessoa (ou grupo) usando o pseudônimo Satoshi Nakamoto.';
-        baseDetails.market_data.current_price.usd = 63715.17 + (Math.random() * 2000 - 1000);
-        baseDetails.market_data.current_price.brl = baseDetails.market_data.current_price.usd * 5;
-        baseDetails.market_data.market_cap.usd = 1248275802934;
-        baseDetails.market_data.total_volume.usd = 25392532591;
-    } else if (coinId === 'ethereum') {
-        baseDetails.name = 'Ethereum';
-        baseDetails.symbol = 'eth';
-        baseDetails.description.en = 'Ethereum é uma plataforma de blockchain descentralizada que permite a criação de contratos inteligentes e aplicações descentralizadas.';
-        baseDetails.market_data.current_price.usd = 3117.08 + (Math.random() * 200 - 100);
-        baseDetails.market_data.current_price.brl = baseDetails.market_data.current_price.usd * 5;
-        baseDetails.market_data.market_cap.usd = 374259723649;
-        baseDetails.market_data.total_volume.usd = 15987654321;
-    }
-
-    return baseDetails;
-}
-
-/**
- * Gera preços aleatórios para gráficos de linha
- */
-function generateRandomPrices(count, min, max) {
-    const prices = [];
-    for (let i = 0; i < count; i++) {
-        prices.push(min + Math.random() * (max - min));
-    }
-    return prices;
-}
+// Função de simulação de detalhes de criptomoedas removida - usando apenas dados reais das APIs
 
 // Exportar funções para uso em outros arquivos
 window.loadCryptoMarketData = loadCryptoMarketData;

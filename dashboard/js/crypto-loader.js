@@ -273,259 +273,14 @@ async function loadCryptoHistoricalData(cryptoId = 'bitcoin', currency = 'usd', 
         return processedData;
     } catch (error) {
         console.error('Erro ao carregar dados históricos de criptomoedas:', error);
-        return simulateCryptoHistoricalData(cryptoId, currency, days);
+        // Propagar erro em vez de usar dados simulados
+        throw error;
     }
 }
 
-/**
- * Simula dados de mercado para criptomoedas quando a API falha
- * @param {string[]} cryptoIds - IDs das criptomoedas
- * @param {string} currency - Moeda para conversão
- * @returns {Array} - Dados simulados de criptomoedas
- */
-function simulateCryptoData(cryptoIds = ['bitcoin', 'ethereum'], currency = 'usd') {
-    console.warn('Usando dados simulados de criptomoedas');
+// Função de simulação de dados de criptomoedas removida - usando apenas dados reais das APIs
 
-    const simulatedData = [
-        {
-            id: 'bitcoin',
-            symbol: 'BTC',
-            name: 'Bitcoin',
-            image: 'https://assets.coingecko.com/coins/images/1/large/bitcoin.png',
-            currentPrice: 50000 + (Math.random() * 5000),
-            marketCap: 950000000000,
-            marketCapRank: 1,
-            volume24h: 30000000000,
-            priceChange24h: 1500 * (Math.random() > 0.5 ? 1 : -1),
-            priceChangePercentage24h: 3 * (Math.random() > 0.5 ? 1 : -1),
-            priceChangePercentage1h: 0.5 * (Math.random() > 0.5 ? 1 : -1),
-            priceChangePercentage7d: 5 * (Math.random() > 0.5 ? 1 : -1),
-            circulatingSupply: 19000000,
-            totalSupply: 21000000,
-            maxSupply: 21000000,
-            ath: 69000,
-            athDate: '2021-11-10T14:24:11.849Z',
-            sparklineData: Array(168).fill(0).map((_, i) => 50000 + (Math.sin(i/24) * 3000) + (Math.random() * 1000)),
-            lastUpdated: new Date().toISOString()
-        },
-        {
-            id: 'ethereum',
-            symbol: 'ETH',
-            name: 'Ethereum',
-            image: 'https://assets.coingecko.com/coins/images/279/large/ethereum.png',
-            currentPrice: 3000 + (Math.random() * 300),
-            marketCap: 350000000000,
-            marketCapRank: 2,
-            volume24h: 15000000000,
-            priceChange24h: 100 * (Math.random() > 0.5 ? 1 : -1),
-            priceChangePercentage24h: 3.5 * (Math.random() > 0.5 ? 1 : -1),
-            priceChangePercentage1h: 0.7 * (Math.random() > 0.5 ? 1 : -1),
-            priceChangePercentage7d: 7 * (Math.random() > 0.5 ? 1 : -1),
-            circulatingSupply: 120000000,
-            totalSupply: 120000000,
-            maxSupply: null,
-            ath: 4800,
-            athDate: '2021-11-08T20:15:31.861Z',
-            sparklineData: Array(168).fill(0).map((_, i) => 3000 + (Math.sin(i/24) * 200) + (Math.random() * 100)),
-            lastUpdated: new Date().toISOString()
-        },
-        {
-            id: 'binancecoin',
-            symbol: 'BNB',
-            name: 'BNB',
-            image: 'https://assets.coingecko.com/coins/images/825/large/bnb-icon2_2x.png',
-            currentPrice: 400 + (Math.random() * 40),
-            marketCap: 60000000000,
-            marketCapRank: 3,
-            volume24h: 2000000000,
-            priceChange24h: 15 * (Math.random() > 0.5 ? 1 : -1),
-            priceChangePercentage24h: 4 * (Math.random() > 0.5 ? 1 : -1),
-            priceChangePercentage1h: 0.6 * (Math.random() > 0.5 ? 1 : -1),
-            priceChangePercentage7d: 6 * (Math.random() > 0.5 ? 1 : -1),
-            circulatingSupply: 155000000,
-            totalSupply: 165000000,
-            maxSupply: 165000000,
-            ath: 690,
-            athDate: '2021-05-10T07:30:34.310Z',
-            sparklineData: Array(168).fill(0).map((_, i) => 400 + (Math.sin(i/24) * 30) + (Math.random() * 15)),
-            lastUpdated: new Date().toISOString()
-        },
-        {
-            id: 'ripple',
-            symbol: 'XRP',
-            name: 'XRP',
-            image: 'https://assets.coingecko.com/coins/images/44/large/xrp-symbol-white-128.png',
-            currentPrice: 0.5 + (Math.random() * 0.1),
-            marketCap: 25000000000,
-            marketCapRank: 6,
-            volume24h: 1500000000,
-            priceChange24h: 0.02 * (Math.random() > 0.5 ? 1 : -1),
-            priceChangePercentage24h: 4 * (Math.random() > 0.5 ? 1 : -1),
-            priceChangePercentage1h: 0.8 * (Math.random() > 0.5 ? 1 : -1),
-            priceChangePercentage7d: 8 * (Math.random() > 0.5 ? 1 : -1),
-            circulatingSupply: 50000000000,
-            totalSupply: 100000000000,
-            maxSupply: 100000000000,
-            ath: 3.4,
-            athDate: '2018-01-07T00:00:00.000Z',
-            sparklineData: Array(168).fill(0).map((_, i) => 0.5 + (Math.sin(i/24) * 0.05) + (Math.random() * 0.02)),
-            lastUpdated: new Date().toISOString()
-        },
-        {
-            id: 'cardano',
-            symbol: 'ADA',
-            name: 'Cardano',
-            image: 'https://assets.coingecko.com/coins/images/975/large/cardano.png',
-            currentPrice: 0.3 + (Math.random() * 0.05),
-            marketCap: 10000000000,
-            marketCapRank: 8,
-            volume24h: 500000000,
-            priceChange24h: 0.01 * (Math.random() > 0.5 ? 1 : -1),
-            priceChangePercentage24h: 3 * (Math.random() > 0.5 ? 1 : -1),
-            priceChangePercentage1h: 0.5 * (Math.random() > 0.5 ? 1 : -1),
-            priceChangePercentage7d: 5 * (Math.random() > 0.5 ? 1 : -1),
-            circulatingSupply: 35000000000,
-            totalSupply: 45000000000,
-            maxSupply: 45000000000,
-            ath: 3.1,
-            athDate: '2021-09-02T06:00:10.474Z',
-            sparklineData: Array(168).fill(0).map((_, i) => 0.3 + (Math.sin(i/24) * 0.03) + (Math.random() * 0.01)),
-            lastUpdated: new Date().toISOString()
-        },
-        {
-            id: 'solana',
-            symbol: 'SOL',
-            name: 'Solana',
-            image: 'https://assets.coingecko.com/coins/images/4128/large/solana.png',
-            currentPrice: 100 + (Math.random() * 10),
-            marketCap: 40000000000,
-            marketCapRank: 5,
-            volume24h: 2500000000,
-            priceChange24h: 5 * (Math.random() > 0.5 ? 1 : -1),
-            priceChangePercentage24h: 5 * (Math.random() > 0.5 ? 1 : -1),
-            priceChangePercentage1h: 1 * (Math.random() > 0.5 ? 1 : -1),
-            priceChangePercentage7d: 10 * (Math.random() > 0.5 ? 1 : -1),
-            circulatingSupply: 400000000,
-            totalSupply: 500000000,
-            maxSupply: null,
-            ath: 260,
-            athDate: '2021-11-06T21:54:35.825Z',
-            sparklineData: Array(168).fill(0).map((_, i) => 100 + (Math.sin(i/24) * 10) + (Math.random() * 5)),
-            lastUpdated: new Date().toISOString()
-        }
-    ];
-
-    // Filtrar apenas as criptomoedas solicitadas
-    return simulatedData.filter(coin => cryptoIds.includes(coin.id));
-}
-
-/**
- * Simula dados históricos para uma criptomoeda quando a API falha
- * @param {string} cryptoId - ID da criptomoeda
- * @param {string} currency - Moeda para conversão
- * @param {number} days - Número de dias de dados históricos
- * @returns {Object} - Dados históricos simulados
- */
-function simulateCryptoHistoricalData(cryptoId = 'bitcoin', currency = 'usd', days = 30) {
-    console.warn(`Usando dados históricos simulados para ${cryptoId}`);
-
-    // Definir preço base e volatilidade com base na moeda
-    let basePrice, volatility;
-
-    switch (cryptoId) {
-        case 'bitcoin':
-            basePrice = 50000;
-            volatility = 5000;
-            break;
-        case 'ethereum':
-            basePrice = 3000;
-            volatility = 300;
-            break;
-        case 'binancecoin':
-            basePrice = 400;
-            volatility = 40;
-            break;
-        case 'ripple':
-            basePrice = 0.5;
-            volatility = 0.05;
-            break;
-        case 'cardano':
-            basePrice = 0.3;
-            volatility = 0.03;
-            break;
-        case 'solana':
-            basePrice = 100;
-            volatility = 10;
-            break;
-        default:
-            basePrice = 100;
-            volatility = 10;
-    }
-
-    // Gerar dados históricos
-    const now = Date.now();
-    const dataPoints = days * 24; // Pontos por hora
-    const interval = (days * 24 * 60 * 60 * 1000) / dataPoints;
-
-    const prices = [];
-    const marketCaps = [];
-    const volumes = [];
-
-    let currentPrice = basePrice;
-    let trend = 0;
-
-    for (let i = 0; i < dataPoints; i++) {
-        const timestamp = now - ((dataPoints - i) * interval);
-
-        // Simular movimento de preço com tendência e aleatoriedade
-        if (i % 24 === 0) {
-            // Mudar tendência a cada 24 pontos (diariamente)
-            trend = (Math.random() - 0.5) * 0.1;
-        }
-
-        // Adicionar componente aleatório e tendência
-        currentPrice = currentPrice * (1 + trend + (Math.random() - 0.5) * 0.02);
-
-        // Garantir que o preço não caia abaixo de um valor mínimo
-        currentPrice = Math.max(currentPrice, basePrice * 0.5);
-
-        // Adicionar dados
-        prices.push([timestamp, currentPrice]);
-
-        // Simular market cap (preço * oferta circulante)
-        const circulatingSupply = cryptoId === 'bitcoin' ? 19000000 :
-                                 cryptoId === 'ethereum' ? 120000000 :
-                                 cryptoId === 'binancecoin' ? 155000000 :
-                                 cryptoId === 'ripple' ? 50000000000 :
-                                 cryptoId === 'cardano' ? 35000000000 :
-                                 cryptoId === 'solana' ? 400000000 : 1000000000;
-
-        marketCaps.push([timestamp, currentPrice * circulatingSupply]);
-
-        // Simular volume (maior em dias de maior volatilidade)
-        const dailyVolatility = Math.abs(trend) * 10;
-        const volume = currentPrice * circulatingSupply * (0.05 + dailyVolatility) * (0.8 + Math.random() * 0.4);
-        volumes.push([timestamp, volume]);
-    }
-
-    return {
-        id: cryptoId,
-        currency: currency,
-        days: days,
-        prices: prices.map(item => ({
-            timestamp: item[0],
-            price: item[1]
-        })),
-        marketCaps: marketCaps.map(item => ({
-            timestamp: item[0],
-            marketCap: item[1]
-        })),
-        volumes: volumes.map(item => ({
-            timestamp: item[0],
-            volume: item[1]
-        }))
-    };
-}
+// Função de simulação de dados históricos de criptomoedas removida - usando apenas dados reais das APIs
 
 /**
  * Processa a resposta da API Alpha Vantage para criptomoedas
@@ -606,13 +361,10 @@ async function processAlphaVantageResponse(response, cryptoIds, currency) {
             }
         }
 
-        // Se não conseguimos dados para todas as criptomoedas, complementar com dados simulados
+        // Se não conseguimos dados para todas as criptomoedas, registrar aviso
         if (processedData.length < cryptoIds.length) {
             const missingIds = cryptoIds.filter(id => !processedData.some(coin => coin.id === id));
-            const simulatedData = simulateCryptoData(missingIds, currency);
-
-            // Adicionar dados simulados
-            processedData.push(...simulatedData);
+            console.warn(`Dados não disponíveis para: ${missingIds.join(', ')}`);
         }
 
         // Salvar no cache
@@ -622,7 +374,8 @@ async function processAlphaVantageResponse(response, cryptoIds, currency) {
         return processedData;
     } catch (error) {
         console.error('Erro ao processar resposta da Alpha Vantage:', error);
-        return simulateCryptoData(cryptoIds, currency);
+        // Propagar erro em vez de usar dados simulados
+        throw error;
     }
 }
 
