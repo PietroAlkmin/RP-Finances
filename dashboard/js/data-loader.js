@@ -3,125 +3,9 @@
  * Responsável por carregar os dados de APIs e disponibilizá-los para os componentes do dashboard
  */
 
-/**
- * Gera dados simulados de criptomoedas
- * @returns {Array} - Dados simulados de criptomoedas
- */
-function getSimulatedCryptoData() {
-    return [
-        {
-            id: 'bitcoin',
-            symbol: 'btc',
-            name: 'Bitcoin',
-            image: 'https://assets.coingecko.com/coins/images/1/large/bitcoin.png',
-            current_price: 63715.17,
-            market_cap: 1248275802934,
-            market_cap_rank: 1,
-            total_volume: 25392532591,
-            price_change_24h: 2215.17,
-            price_change_percentage_24h: 3.48,
-            price_change_percentage_7d: 5.12,
-            price_change_percentage_30d: 10.45,
-            price_change_percentage_1y: 45.23,
-            sparkline_in_7d: { price: generateRandomSparklineData(24, 60000, 65000) }
-        },
-        {
-            id: 'ethereum',
-            symbol: 'eth',
-            name: 'Ethereum',
-            image: 'https://assets.coingecko.com/coins/images/279/large/ethereum.png',
-            current_price: 3117.08,
-            market_cap: 374259723649,
-            market_cap_rank: 2,
-            total_volume: 15987654321,
-            price_change_24h: 38.17,
-            price_change_percentage_24h: 1.23,
-            price_change_percentage_7d: 3.45,
-            price_change_percentage_30d: 8.76,
-            price_change_percentage_1y: 32.15,
-            sparkline_in_7d: { price: generateRandomSparklineData(24, 3000, 3200) }
-        },
-        {
-            id: 'binancecoin',
-            symbol: 'bnb',
-            name: 'BNB',
-            image: 'https://assets.coingecko.com/coins/images/825/large/bnb-icon2_2x.png',
-            current_price: 574.32,
-            market_cap: 88654321098,
-            market_cap_rank: 3,
-            total_volume: 2345678901,
-            price_change_24h: 12.15,
-            price_change_percentage_24h: 2.15,
-            price_change_percentage_7d: 4.32,
-            price_change_percentage_30d: 7.65,
-            price_change_percentage_1y: 28.43,
-            sparkline_in_7d: { price: generateRandomSparklineData(24, 550, 580) }
-        },
-        {
-            id: 'ripple',
-            symbol: 'xrp',
-            name: 'XRP',
-            image: 'https://assets.coingecko.com/coins/images/44/large/xrp-symbol-white-128.png',
-            current_price: 0.5423,
-            market_cap: 29876543210,
-            market_cap_rank: 4,
-            total_volume: 1234567890,
-            price_change_24h: -0.0082,
-            price_change_percentage_24h: -1.45,
-            price_change_percentage_7d: -2.34,
-            price_change_percentage_30d: 5.67,
-            price_change_percentage_1y: 15.43,
-            sparkline_in_7d: { price: generateRandomSparklineData(24, 0.52, 0.56) }
-        },
-        {
-            id: 'cardano',
-            symbol: 'ada',
-            name: 'Cardano',
-            image: 'https://assets.coingecko.com/coins/images/975/large/cardano.png',
-            current_price: 0.4321,
-            market_cap: 15234567890,
-            market_cap_rank: 5,
-            total_volume: 987654321,
-            price_change_24h: 0.0037,
-            price_change_percentage_24h: 0.87,
-            price_change_percentage_7d: 1.23,
-            price_change_percentage_30d: 4.56,
-            price_change_percentage_1y: 12.34,
-            sparkline_in_7d: { price: generateRandomSparklineData(24, 0.42, 0.44) }
-        },
-        {
-            id: 'solana',
-            symbol: 'sol',
-            name: 'Solana',
-            image: 'https://assets.coingecko.com/coins/images/4128/large/solana.png',
-            current_price: 137.89,
-            market_cap: 59876543210,
-            market_cap_rank: 6,
-            total_volume: 3456789012,
-            price_change_24h: 5.67,
-            price_change_percentage_24h: 4.32,
-            price_change_percentage_7d: 8.76,
-            price_change_percentage_30d: 15.43,
-            price_change_percentage_1y: 65.32,
-            sparkline_in_7d: { price: generateRandomSparklineData(24, 130, 140) }
-        }
-    ];
-}
+// Mock crypto data function removed - using only real CoinGecko API data
 
-/**
- * Gera dados aleatórios para gráficos de linha
- * @param {number} points - Número de pontos
- * @param {number} min - Valor mínimo
- * @param {number} max - Valor máximo
- * @returns {Array} - Array de valores aleatórios
- */
-function generateRandomSparklineData(points, min, max) {
-    const data = [];
-    for (let i = 0; i < points; i++) {
-        data.push(min + Math.random() * (max - min));
-    }
-    return data;
-}
+// Random sparkline data function removed - using real API data
 
 // Objeto global para armazenar todos os dados
 const dashboardData = {
@@ -146,7 +30,7 @@ async function loadAllData() {
         const loadingIndicator = document.getElementById('loading-indicator');
         if (loadingIndicator) loadingIndicator.classList.remove('hidden');
 
-        // Obter dados de índices (com fallback para dados simulados)
+        // Obter dados de índices (sem fallback para dados simulados)
         let indicesData;
         try {
             indicesData = await fetchIndicesData();
@@ -154,17 +38,17 @@ async function loadAllData() {
         } catch (error) {
             console.error('Erro ao carregar índices:', error);
             dashboardData.indicesError = true;
-            // Usar dados em cache se disponíveis, caso contrário usar dados simulados
+            // Usar dados em cache se disponíveis
             if (dashboardData.indices) {
                 console.log('Usando dados de índices do cache após erro na API');
                 indicesData = dashboardData.indices;
             } else {
-                console.log('Usando dados simulados para índices');
-                indicesData = simulateIndicesData();
+                console.error('Não foi possível carregar dados de índices');
+                throw error;
             }
         }
 
-        // Obter dados de ações (com fallback para dados simulados)
+        // Obter dados de ações (sem fallback para dados simulados)
         let stocksData;
         try {
             stocksData = await fetchStocksData();
@@ -172,13 +56,13 @@ async function loadAllData() {
         } catch (error) {
             console.error('Erro ao carregar ações:', error);
             dashboardData.stocksError = true;
-            // Usar dados em cache se disponíveis, caso contrário usar dados simulados
+            // Usar dados em cache se disponíveis
             if (dashboardData.stocks) {
                 console.log('Usando dados de ações do cache após erro na API');
                 stocksData = dashboardData.stocks;
             } else {
-                console.log('Usando dados simulados para ações');
-                stocksData = simulateStocksData();
+                console.error('Não foi possível carregar dados de ações');
+                throw error;
             }
         }
 
@@ -194,9 +78,23 @@ async function loadAllData() {
         // Gerar resumo do mercado
         const marketSummaryData = generateMarketSummary(indicesData, stocksData, regionsData, sectorsData);
 
-        // Usar dados simulados de criptomoedas para evitar chamadas de API
-        console.log('Usando dados simulados de criptomoedas...');
-        const cryptoData = getSimulatedCryptoData();
+        // Obter dados de criptomoedas (sem fallback para dados simulados)
+        let cryptoData;
+        try {
+            cryptoData = await fetchCryptoData();
+            dashboardData.cryptoError = false;
+        } catch (error) {
+            console.error('Erro ao carregar criptomoedas:', error);
+            dashboardData.cryptoError = true;
+            // Usar dados em cache se disponíveis
+            if (dashboardData.crypto) {
+                console.log('Usando dados de crypto do cache após erro na API');
+                cryptoData = dashboardData.crypto;
+            } else {
+                console.error('Não foi possível carregar dados de criptomoedas');
+                throw error;
+            }
+        }
 
         // Armazenar dados no objeto global
         dashboardData.indices = indicesData;
@@ -571,55 +469,24 @@ async function loadNewsData(source = 'all', language = 'all', topic = 'all') {
         CacheManager.clearCacheByType('news');
         console.log('Cache de notícias limpo');
 
-        // Verificar se devemos usar dados simulados diretamente
-        // Isso evita erros de API desnecessários
-        const useSimulatedData = false; // Tentar usar a API real primeiro
-
+        // Usar apenas dados reais das APIs - sem fallback para dados simulados
         let generalNews, financialNews;
 
         try {
-            if (useSimulatedData) {
-                // Usar diretamente dados simulados
-                generalNews = simulateGeneralNews();
-                // Criar dados financeiros a partir dos dados gerais
-                financialNews = generalNews.map(news => ({
-                    ...news,
-                    impactScore: parseFloat((Math.random() * 10).toFixed(1)),
-                    relevanceScore: parseFloat((Math.random() * 10).toFixed(1)),
-                    marketReaction: Math.random() > 0.5 ? 'positive' : 'negative'
-                }));
-                console.log('Usando dados simulados para notícias');
-            } else {
-                // Tentar obter dados reais das APIs
-                console.log('Tentando obter dados reais das APIs...');
-                generalNews = await fetchGeneralNews(source, language, topic);
-                financialNews = await fetchFinancialNews(source, language, topic);
-                console.log('Dados reais obtidos com sucesso');
-            }
+            // Obter dados reais das APIs
+            console.log('Obtendo dados reais das APIs...');
+            generalNews = await fetchGeneralNews(source, language, topic);
+            financialNews = await fetchFinancialNews(source, language, topic);
+            console.log('Dados reais obtidos com sucesso');
         } catch (apiError) {
             console.error('Erro ao obter dados das APIs:', apiError);
-            console.log('Usando dados simulados como fallback após erro na API');
-
-            // Usar dados simulados como fallback
-            generalNews = simulateGeneralNews();
-            financialNews = generalNews.map(news => ({
-                ...news,
-                impactScore: parseFloat((Math.random() * 10).toFixed(1)),
-                relevanceScore: parseFloat((Math.random() * 10).toFixed(1)),
-                marketReaction: Math.random() > 0.5 ? 'positive' : 'negative'
-            }));
+            throw apiError; // Propagar erro em vez de usar fallback
         }
 
         // Verificar se financialNews é um array válido
         if (!financialNews || !Array.isArray(financialNews) || financialNews.length === 0) {
-            console.warn('Dados de notícias financeiras inválidos ou vazios');
-            // Criar dados simulados
-            financialNews = simulateGeneralNews().map(news => ({
-                ...news,
-                impactScore: parseFloat((Math.random() * 10).toFixed(1)),
-                relevanceScore: parseFloat((Math.random() * 10).toFixed(1)),
-                marketReaction: Math.random() > 0.5 ? 'positive' : 'negative'
-            }));
+            console.error('Dados de notícias financeiras inválidos ou vazios');
+            throw new Error('Dados de notícias financeiras inválidos');
         }
 
         // Processar análise de sentimento
@@ -651,39 +518,8 @@ async function loadNewsData(source = 'all', language = 'all', topic = 'all') {
         const errorMessage = document.getElementById('error-message');
         if (errorMessage) errorMessage.classList.remove('hidden');
 
-        // Tentar carregar dados simulados
-        try {
-            const generalNews = simulateGeneralNews(source, language, topic);
-            const financialNews = generalNews.map(news => ({
-                ...news,
-                impactScore: parseFloat((Math.random() * 10).toFixed(1)),
-                relevanceScore: parseFloat((Math.random() * 10).toFixed(1)),
-                marketReaction: Math.random() > 0.5 ? 'positive' : 'negative'
-            }));
-
-            // Calcular análise de sentimento
-            const sentimentAnalysis = {
-                positive: generalNews.filter(n => n.sentiment === 'positive').length,
-                negative: generalNews.filter(n => n.sentiment === 'negative').length,
-                neutral: generalNews.filter(n => n.sentiment === 'neutral').length
-            };
-
-            window.newsData.general = generalNews;
-            window.newsData.financial = financialNews;
-            window.newsData.sentiment = sentimentAnalysis;
-            window.newsData.filters = { source, language, topic };
-            window.newsData.dataLoaded = true;
-            window.newsData.lastUpdate = new Date();
-
-            // Disparar evento de dados carregados
-            const event = new CustomEvent('newsDataLoaded');
-            document.dispatchEvent(event);
-
-            return true;
-        } catch (simError) {
-            console.error('Erro ao carregar dados simulados de notícias:', simError);
-            return false;
-        }
+        // Não usar dados simulados - retornar erro
+        return false;
     }
 }
 
@@ -870,32 +706,7 @@ async function fetchIndicesData() {
     }
 }
 
-/**
- * Função de fallback para gerar dados simulados de índices
- */
-function simulateIndicesData() {
-    console.warn('Usando dados simulados para índices');
-    return [
-        {
-            symbol: '^GSPC',
-            name: 'S&P 500',
-            region: 'US',
-            last_price: 5250 + (Math.random() * 50 - 25),
-            hours24_return: 0.3 + (Math.random() * 0.8 - 0.4),
-            month_return: 2.5 + (Math.random() * 2 - 1),
-            ytd_return: 8.2 + (Math.random() * 3 - 1.5),
-            year12_return: 15.8 + (Math.random() * 5 - 2.5)
-        },
-        {
-            symbol: '^DJI',
-            name: 'Dow Jones',
-            region: 'US',
-            last_price: 39000 + (Math.random() * 300 - 150),
-            hours24_return: 0.2 + (Math.random() * 0.6 - 0.3),
-            month_return: 1.8 + (Math.random() * 2 - 1),
-            ytd_return: 6.5 + (Math.random() * 3 - 1.5),
-            year12_return: 12.4 + (Math.random() * 5 - 2.5)
-        },
+// Função de simulação de índices removida - usando apenas dados reais das APIs
         {
             symbol: '^IXIC',
             name: 'Nasdaq',
@@ -956,18 +767,7 @@ function simulateIndicesData() {
             ytd_return: -4.8 + (Math.random() * 3 - 1.5),
             year12_return: -11.3 + (Math.random() * 5 - 2.5)
         },
-        {
-            symbol: '^BVSP',
-            name: 'Ibovespa',
-            region: 'BR',
-            last_price: 128000 + (Math.random() * 1200 - 600),
-            hours24_return: 0.3 + (Math.random() * 0.8 - 0.4),
-            month_return: 1.9 + (Math.random() * 2 - 1),
-            ytd_return: 5.4 + (Math.random() * 3 - 1.5),
-            year12_return: 12.8 + (Math.random() * 5 - 2.5)
-        }
-    ];
-}
+
 
 /**
  * Obtém dados de ações da API do Yahoo Finance
@@ -1120,248 +920,10 @@ async function fetchStocksData() {
     }
 }
 
-/**
- * Função de fallback para gerar dados simulados de ações
- */
-function simulateStocksData() {
-    console.warn('Usando dados simulados para ações');
-    return [
-        {
-            symbol: 'AAPL',
-            name: 'Apple',
-            region: 'US',
-            last_price: 175 + (Math.random() * 10 - 5),
-            period_return: 3.5 + (Math.random() * 3 - 1.5),
-            week_return: 1.2 + (Math.random() * 1.5 - 0.75),
-            volatility: 20 + (Math.random() * 4 - 2),
-            avg_volume: 80000000 + (Math.random() * 10000000),
-            trend: Math.random() > 0.3 ? 'Alta' : 'Baixa',
-            sector: 'Tecnologia'
-        },
-        {
-            symbol: 'MSFT',
-            name: 'Microsoft',
-            region: 'US',
-            last_price: 410 + (Math.random() * 15 - 7.5),
-            period_return: 4.2 + (Math.random() * 3 - 1.5),
-            week_return: 1.5 + (Math.random() * 1.5 - 0.75),
-            volatility: 18 + (Math.random() * 4 - 2),
-            avg_volume: 30000000 + (Math.random() * 5000000),
-            trend: Math.random() > 0.3 ? 'Alta' : 'Baixa',
-            sector: 'Tecnologia'
-        },
-        // Outras ações simuladas...
-        {
-            symbol: 'ITUB4.SA',
-            name: 'Itaú Unibanco',
-            region: 'BR',
-            last_price: 32 + (Math.random() * 1.5 - 0.75),
-            period_return: 1.5 + (Math.random() * 3 - 1.5),
-            week_return: 0.4 + (Math.random() * 1.5 - 0.75),
-            volatility: 22 + (Math.random() * 4 - 2),
-            avg_volume: 30000000 + (Math.random() * 6000000),
-            trend: Math.random() > 0.4 ? 'Alta' : 'Baixa',
-            sector: 'Financeiro'
-        }
-    ];
-}
+// Função de simulação de ações removida - usando apenas dados reais das APIs
 
-/**
- * Simula uma chamada para obter dados de ativos para a página de melhores ativos
- */
-async function fetchAssetsData(period, assetType) {
-    // Verificar se há dados em cache
-    const cacheKey = `assets_simulated_${period}_${assetType}`;
-    const cachedData = CacheManager.getFromCache(cacheKey);
+// Função de simulação de ativos removida - usando apenas dados reais das APIs
 
-    if (cachedData) {
-        console.log('Usando dados simulados de ativos do cache');
-        return cachedData;
-    }
-
-    // Simular delay de rede
-    await new Promise(resolve => setTimeout(resolve, 600));
-
-    // Base de ativos
-    const allAssets = [
-        // Ações
-        {
-            symbol: 'AAPL',
-            name: 'Apple',
-            type: 'stocks',
-            last_price: 175 + (Math.random() * 10 - 5),
-            week_return: 1.2 + (Math.random() * 3 - 1),
-            month_return: 3.5 + (Math.random() * 5 - 2),
-            year_return: 15.8 + (Math.random() * 10 - 5),
-            volume: 80000000 + (Math.random() * 10000000),
-            trend: Math.random() > 0.3 ? 'Alta' : 'Baixa'
-        },
-        {
-            symbol: 'MSFT',
-            name: 'Microsoft',
-            type: 'stocks',
-            last_price: 410 + (Math.random() * 15 - 7.5),
-            week_return: 1.5 + (Math.random() * 3 - 1),
-            month_return: 4.2 + (Math.random() * 5 - 2),
-            year_return: 20.5 + (Math.random() * 10 - 5),
-            volume: 30000000 + (Math.random() * 5000000),
-            trend: Math.random() > 0.3 ? 'Alta' : 'Baixa'
-        },
-        {
-            symbol: 'NVDA',
-            name: 'NVIDIA',
-            type: 'stocks',
-            last_price: 880 + (Math.random() * 40 - 20),
-            week_return: 2.8 + (Math.random() * 3 - 1),
-            month_return: 8.5 + (Math.random() * 5 - 2),
-            year_return: 150 + (Math.random() * 30 - 15),
-            volume: 50000000 + (Math.random() * 10000000),
-            trend: Math.random() > 0.2 ? 'Alta' : 'Baixa'
-        },
-
-        // Criptomoedas
-        {
-            symbol: 'BTC',
-            name: 'Bitcoin',
-            type: 'crypto',
-            last_price: 65000 + (Math.random() * 3000 - 1500),
-            week_return: 3.5 + (Math.random() * 6 - 3),
-            month_return: 10.2 + (Math.random() * 10 - 5),
-            year_return: 45.8 + (Math.random() * 20 - 10),
-            volume: 30000000000 + (Math.random() * 5000000000),
-            trend: Math.random() > 0.4 ? 'Alta' : 'Baixa'
-        },
-        {
-            symbol: 'ETH',
-            name: 'Ethereum',
-            type: 'crypto',
-            last_price: 3500 + (Math.random() * 200 - 100),
-            week_return: 4.2 + (Math.random() * 6 - 3),
-            month_return: 12.5 + (Math.random() * 10 - 5),
-            year_return: 40.2 + (Math.random() * 20 - 10),
-            volume: 15000000000 + (Math.random() * 3000000000),
-            trend: Math.random() > 0.4 ? 'Alta' : 'Baixa'
-        },
-
-        // Fundos Imobiliários
-        {
-            symbol: 'KNRI11.SA',
-            name: 'Kinea Renda Imobiliária',
-            type: 'reits',
-            last_price: 140 + (Math.random() * 5 - 2.5),
-            week_return: 0.8 + (Math.random() * 2 - 1),
-            month_return: 2.5 + (Math.random() * 3 - 1.5),
-            year_return: 12.5 + (Math.random() * 8 - 4),
-            volume: 10000000 + (Math.random() * 2000000),
-            trend: Math.random() > 0.4 ? 'Alta' : 'Baixa'
-        },
-        {
-            symbol: 'HGLG11.SA',
-            name: 'CSHG Logística',
-            type: 'reits',
-            last_price: 170 + (Math.random() * 6 - 3),
-            week_return: 0.9 + (Math.random() * 2 - 1),
-            month_return: 2.8 + (Math.random() * 3 - 1.5),
-            year_return: 13.2 + (Math.random() * 8 - 4),
-            volume: 8000000 + (Math.random() * 1500000),
-            trend: Math.random() > 0.4 ? 'Alta' : 'Baixa'
-        },
-
-        // ETFs
-        {
-            symbol: 'SPY',
-            name: 'SPDR S&P 500 ETF',
-            type: 'etfs',
-            last_price: 520 + (Math.random() * 15 - 7.5),
-            week_return: 1.1 + (Math.random() * 2 - 1),
-            month_return: 3.2 + (Math.random() * 3 - 1.5),
-            year_return: 15.5 + (Math.random() * 8 - 4),
-            volume: 100000000 + (Math.random() * 20000000),
-            trend: Math.random() > 0.3 ? 'Alta' : 'Baixa'
-        },
-        {
-            symbol: 'QQQ',
-            name: 'Invesco QQQ Trust',
-            type: 'etfs',
-            last_price: 430 + (Math.random() * 15 - 7.5),
-            week_return: 1.3 + (Math.random() * 2 - 1),
-            month_return: 3.8 + (Math.random() * 3 - 1.5),
-            year_return: 18.2 + (Math.random() * 8 - 4),
-            volume: 80000000 + (Math.random() * 15000000),
-            trend: Math.random() > 0.3 ? 'Alta' : 'Baixa'
-        },
-
-        // Ouro e derivados
-        {
-            symbol: 'GC=F',
-            name: 'Gold Futures',
-            type: 'gold',
-            last_price: 2300 + (Math.random() * 50 - 25),
-            week_return: 0.7 + (Math.random() * 2 - 1),
-            month_return: 2.1 + (Math.random() * 3 - 1.5),
-            year_return: 10.5 + (Math.random() * 8 - 4),
-            volume: 200000 + (Math.random() * 50000),
-            trend: Math.random() > 0.4 ? 'Alta' : 'Baixa'
-        },
-        {
-            symbol: 'GLD',
-            name: 'SPDR Gold Shares',
-            type: 'gold',
-            last_price: 215 + (Math.random() * 8 - 4),
-            week_return: 0.6 + (Math.random() * 2 - 1),
-            month_return: 2.0 + (Math.random() * 3 - 1.5),
-            year_return: 9.8 + (Math.random() * 8 - 4),
-            volume: 8000000 + (Math.random() * 1500000),
-            trend: Math.random() > 0.4 ? 'Alta' : 'Baixa'
-        },
-
-        // Renda Fixa
-        {
-            symbol: 'IPCA+',
-            name: 'Tesouro IPCA+',
-            type: 'fixed-income',
-            last_price: 1000 + (Math.random() * 10 - 5),
-            week_return: 0.2 + (Math.random() * 0.4 - 0.2),
-            month_return: 0.9 + (Math.random() * 0.6 - 0.3),
-            year_return: 11.2 + (Math.random() * 2 - 1),
-            volume: null,
-            trend: 'Alta'
-        },
-        {
-            symbol: 'CDI',
-            name: 'Certificado de Depósito Interbancário',
-            type: 'fixed-income',
-            last_price: 1000 + (Math.random() * 5 - 2.5),
-            week_return: 0.18 + (Math.random() * 0.04 - 0.02),
-            month_return: 0.8 + (Math.random() * 0.1 - 0.05),
-            year_return: 10.5 + (Math.random() * 1 - 0.5),
-            volume: null,
-            trend: 'Alta'
-        }
-    ];
-
-    // Filtrar por tipo de ativo
-    let filteredAssets = allAssets;
-    if (assetType !== 'all') {
-        filteredAssets = allAssets.filter(asset => asset.type === assetType);
-    }
-
-    // Ordenar por retorno do período selecionado
-    const returnField = period === 'week' ? 'week_return' : period === 'month' ? 'month_return' : 'year_return';
-    filteredAssets.sort((a, b) => b[returnField] - a[returnField]);
-
-    // Salvar dados no cache
-    CacheManager.saveToCache(cacheKey, filteredAssets, CONFIG.cache.ttl.bestAssets);
-
-    // Processar dados por categoria para garantir consistência
-    const categoriesData = processCategoriesData(filteredAssets, period);
-
-    // Retornar objeto com estrutura consistente
-    return {
-        assets: filteredAssets,
-        categories: categoriesData
-    };
-}
 
 /**
  * Obtém notícias gerais da API de notícias
@@ -1399,9 +961,9 @@ async function fetchGeneralNews(source, language, topic) {
 
             // Verificar se estamos solicitando InfoMoney ou Investing.com
             if (source === 'infomoney' || source === 'investing') {
-                // Para InfoMoney e Investing.com, usamos dados simulados diretamente
-                console.log(`Usando dados simulados para ${CONFIG.newsSources[source].name}`);
-                return simulateGeneralNews(source, language, topic);
+                // Para InfoMoney e Investing.com, não há API disponível
+                console.error(`Fonte ${source} não tem API disponível`);
+                throw new Error(`Fonte ${source} não tem API disponível`);
             }
 
             // Para GNews API, precisamos ajustar os parâmetros
@@ -1626,201 +1188,18 @@ async function fetchGeneralNews(source, language, topic) {
                 if (errorMessage) errorMessage.classList.remove('hidden');
             }
 
-            return simulateGeneralNews(source, language, topic);
+            throw apiError; // Propagar erro em vez de usar fallback
         }
     } catch (error) {
         console.error('Erro ao obter notícias gerais:', error);
-        return simulateGeneralNews(source, language, topic);
+        throw error; // Propagar erro em vez de usar fallback
     }
 }
 
 // Função fetchFinancialModelingPrepNews removida - usando apenas GNews API
 
-/**
- * Função de fallback para gerar notícias simuladas
- */
-function simulateGeneralNews(source, language, topic) {
-    console.warn('Usando notícias simuladas');
+// Função de simulação de notícias removida - usando apenas dados reais das APIs
 
-    // Adicionar notícias dinâmicas para InfoMoney e Investing.com
-    if (source === 'infomoney' || source === 'investing') {
-        console.log(`Gerando notícias simuladas específicas para ${source}`);
-    }
-
-    // Notícias simuladas
-    const allNews = [
-        // InfoMoney (pt-BR)
-        {
-            source: 'infomoney',
-            language: 'pt',
-            title: 'Ibovespa sobe impulsionado por commodities e expectativa de corte de juros',
-            description: 'O principal índice da bolsa brasileira avançou com forte desempenho das ações de mineração e petróleo, além da expectativa de corte na taxa Selic.',
-            url: 'https://www.infomoney.com.br/mercados/ibovespa-sobe-impulsionado-por-commodities-e-expectativa-de-corte-de-juros/',
-            publishedAt: new Date(Date.now() - 3600000).toISOString(),
-            topics: ['stocks', 'economy'],
-            sentiment: 'positive'
-        },
-        {
-            source: 'infomoney',
-            language: 'pt',
-            title: 'Bitcoin atinge nova máxima histórica após aprovação de ETF',
-            description: 'A principal criptomoeda do mundo superou os US$ 70 mil após a SEC aprovar novos ETFs de Bitcoin à vista nos Estados Unidos.',
-            url: 'https://www.infomoney.com.br/mercados/bitcoin-atinge-nova-maxima-historica-apos-aprovacao-de-etf/',
-            publishedAt: new Date(Date.now() - 7200000).toISOString(),
-            topics: ['crypto'],
-            sentiment: 'positive'
-        },
-
-        // BBC (en-GB)
-        {
-            source: 'bbc',
-            language: 'en',
-            title: 'US Federal Reserve signals potential interest rate cuts',
-            description: 'The Federal Reserve has indicated it may begin cutting interest rates later this year as inflation shows signs of cooling.',
-            url: 'https://www.bbc.com/news/business/us-federal-reserve-signals-potential-interest-rate-cuts',
-            publishedAt: new Date(Date.now() - 5400000).toISOString(),
-            topics: ['economy'],
-            sentiment: 'positive'
-        },
-        // Investing.com (en-US)
-        {
-            source: 'investing',
-            language: 'en',
-            title: 'S&P 500 hits record high as tech stocks rally',
-            description: 'The S&P 500 reached a new all-time high today as technology stocks continued their upward momentum, driven by strong earnings reports.',
-            url: 'https://www.investing.com/indices/us-spx-500',
-            publishedAt: new Date(Date.now() - 2800000).toISOString(),
-            topics: ['stocks'],
-            sentiment: 'positive'
-        },
-        {
-            source: 'investing',
-            language: 'en',
-            title: 'Oil prices drop on increased supply concerns',
-            description: 'Crude oil prices fell sharply today as OPEC+ members consider increasing production quotas amid growing global economic uncertainty.',
-            url: 'https://www.investing.com/commodities/crude-oil',
-            publishedAt: new Date(Date.now() - 4500000).toISOString(),
-            topics: ['commodities'],
-            sentiment: 'negative'
-        },
-        {
-            source: 'investing',
-            language: 'en',
-            title: 'Gold reaches six-month high on inflation fears',
-            description: 'Gold prices climbed to a six-month high as investors seek safe-haven assets amid persistent inflation concerns and geopolitical tensions.',
-            url: 'https://www.investing.com/commodities/gold',
-            publishedAt: new Date(Date.now() - 6300000).toISOString(),
-            topics: ['gold', 'commodities'],
-            sentiment: 'positive'
-        },
-        {
-            source: 'investing',
-            language: 'en',
-            title: 'Fed minutes reveal divided opinions on rate path',
-            description: 'The latest Federal Reserve meeting minutes show committee members are divided on the future path of interest rates, with some favoring more aggressive cuts.',
-            url: 'https://www.investing.com/economic-calendar/fomc-meeting-minutes-108',
-            publishedAt: new Date(Date.now() - 8100000).toISOString(),
-            topics: ['economy', 'fixed-income'],
-            sentiment: 'neutral'
-        },
-
-        // InfoMoney (pt-BR) - Mais notícias
-        {
-            source: 'infomoney',
-            language: 'pt',
-            title: 'Petrobras anuncia novo plano de investimentos com foco em transição energética',
-            description: 'A estatal prevê investir R$ 80 bilhões nos próximos cinco anos em projetos de energia renovável e redução de emissões de carbono.',
-            url: 'https://www.infomoney.com.br/mercados/petroleo-e-gas/',
-            publishedAt: new Date(Date.now() - 9000000).toISOString(),
-            topics: ['stocks', 'commodities'],
-            sentiment: 'positive'
-        },
-        {
-            source: 'infomoney',
-            language: 'pt',
-            title: 'Tesouro Direto: títulos públicos registram forte demanda após corte na Selic',
-            description: 'Investidores buscam garantir rendimentos mais altos antes de possíveis novos cortes na taxa básica de juros pelo Banco Central.',
-            url: 'https://www.infomoney.com.br/onde-investir/renda-fixa/',
-            publishedAt: new Date(Date.now() - 10800000).toISOString(),
-            topics: ['fixed-income', 'economy'],
-            sentiment: 'neutral'
-        },
-        {
-            source: 'infomoney',
-            language: 'pt',
-            title: 'Fundos imobiliários de logística lideram rentabilidade no primeiro trimestre',
-            description: 'FIIs do segmento logístico apresentaram retorno médio de 8,5% no período, superando outros setores como shopping centers e láminas comerciais.',
-            url: 'https://www.infomoney.com.br/onde-investir/fundos-imobiliarios/',
-            publishedAt: new Date(Date.now() - 12600000).toISOString(),
-            topics: ['reits'],
-            sentiment: 'positive'
-        },
-        {
-            source: 'infomoney',
-            language: 'pt',
-            title: 'ETFs de índices internacionais ganham popularidade entre investidores brasileiros',
-            description: 'Produtos que replicam índices estrangeiros como S&P 500 e Nasdaq registram aumento de 150% no volume negociado na B3 nos últimos 12 meses.',
-            url: 'https://www.infomoney.com.br/onde-investir/etfs/',
-            publishedAt: new Date(Date.now() - 14400000).toISOString(),
-            topics: ['etfs', 'stocks'],
-            sentiment: 'positive'
-        },
-
-        // Outras notícias simuladas...
-    ];
-
-    // Aplicar filtros
-    let filteredNews = allNews;
-
-    if (source !== 'all') {
-        filteredNews = filteredNews.filter(news => news.source === source);
-    }
-
-    if (language !== 'all') {
-        filteredNews = filteredNews.filter(news => news.language === language);
-    }
-
-    if (topic !== 'all') {
-        filteredNews = filteredNews.filter(news => news.topics.includes(topic));
-    }
-
-    // Ordenar por data de publicação (mais recentes primeiro)
-    filteredNews.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
-
-    // Adicionar campos adicionais necessários para cada notícia
-    filteredNews = filteredNews.map(news => {
-        // Determinar o nome da fonte para exibição
-        let sourceName = news.sourceName;
-        if (!sourceName) {
-            if (news.originalSource) {
-                sourceName = news.originalSource;
-            } else if (CONFIG.newsSources[news.source]) {
-                sourceName = CONFIG.newsSources[news.source].name;
-            } else {
-                // Formatar o nome da fonte se não estiver no mapeamento
-                sourceName = news.source.split('-').map(word =>
-                    word.charAt(0).toUpperCase() + word.slice(1)
-                ).join(' ');
-            }
-        }
-
-        return {
-            ...news,
-            // Adicionar campos que podem estar faltando
-            author: news.author || 'Autor desconhecido',
-            content: news.content || news.description,
-            urlToImage: news.urlToImage || '',
-            originalSource: news.originalSource || news.source,
-            sourceName: sourceName,
-            // Adicionar campos de análise se não existirem
-            positiveScore: news.positiveScore || Math.floor(Math.random() * 5),
-            negativeScore: news.negativeScore || Math.floor(Math.random() * 5),
-            sentimentScore: news.sentimentScore || (news.sentiment === 'positive' ? 2 : news.sentiment === 'negative' ? -2 : 0)
-        };
-    });
-
-    return filteredNews;
-}
 
 /**
  * Obtém notícias financeiras específicas com métricas adicionais
@@ -1889,14 +1268,8 @@ async function fetchFinancialNews(source, language, topic) {
     } catch (error) {
         console.error('Erro ao obter notícias financeiras:', error);
 
-        // Em caso de erro, retornar dados simulados
-        const simulatedNews = await simulateGeneralNews(source, language, topic);
-        return simulatedNews.map(news => ({
-            ...news,
-            impactScore: parseFloat((Math.random() * 10).toFixed(1)),
-            relevanceScore: parseFloat((Math.random() * 10).toFixed(1)),
-            marketReaction: Math.random() > 0.5 ? 'positive' : 'negative'
-        }));
+        // Propagar erro em vez de usar dados simulados
+        throw error;
     }
 }
 
@@ -1924,9 +1297,8 @@ async function fetchFeaturedNews() {
     } catch (error) {
         console.error('Erro ao obter notícias em destaque:', error);
 
-        // Em caso de erro, retornar dados simulados
-        const simulatedNews = await simulateGeneralNews('all', 'all', 'all');
-        return simulatedNews.slice(0, 5);
+        // Propagar erro em vez de usar dados simulados
+        throw error;
     }
 }
 
@@ -2003,27 +1375,12 @@ function processSectorsData(stocksData) {
 }
 
 /**
- * Calcula correlações entre índices
+ * Calcula correlações entre índices (função removida - correlações simuladas removidas)
  */
 function calculateCorrelations(indicesData) {
-    const correlations = [];
-
-    // Calcular correlações simples (simuladas)
-    for (let i = 0; i < indicesData.length; i++) {
-        for (let j = i + 1; j < indicesData.length; j++) {
-            // Gerar correlação simulada entre -1 e 1
-            const correlation = parseFloat((Math.random() * 2 - 1).toFixed(2));
-
-            correlations.push({
-                index1: indicesData[i].name,
-                index2: indicesData[j].name,
-                correlation: correlation
-            });
-        }
-    }
-
-    // Ordenar por valor absoluto da correlação (do maior para o menor)
-    return correlations.sort((a, b) => Math.abs(b.correlation) - Math.abs(a.correlation));
+    // Retornar array vazio - correlações reais requerem dados históricos complexos
+    console.warn('Cálculo de correlações desabilitado - requer dados históricos reais');
+    return [];
 }
 
 /**

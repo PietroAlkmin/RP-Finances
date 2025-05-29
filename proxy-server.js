@@ -142,57 +142,39 @@ app.get('/api/alpha-vantage', async (req, res) => {
 
 // Rota para proxy da API de notícias removida - usando apenas GNews
 
-// Rota para proxy da API CoinGecko (desativada - retorna dados simulados)
+// Rota para proxy da API CoinGecko (reativada para usar dados reais)
 app.get('/api/coingecko/:endpoint(*)', async (req, res) => {
-    console.log('CoinGecko API desativada - retornando dados simulados');
+    try {
+        const { endpoint } = req.params;
+        const queryParams = req.query;
 
-    // Retornar dados simulados em vez de chamar a API
-    if (req.params.endpoint.includes('coins/markets')) {
-        // Dados simulados para criptomoedas
-        const simulatedData = [
-            {
-                id: 'bitcoin',
-                symbol: 'btc',
-                name: 'Bitcoin',
-                image: 'https://assets.coingecko.com/coins/images/1/large/bitcoin.png',
-                current_price: 63715.17,
-                market_cap: 1248275802934,
-                market_cap_rank: 1,
-                total_volume: 25392532591,
-                price_change_24h: 2215.17,
-                price_change_percentage_24h: 3.48,
-                sparkline_in_7d: { price: generateRandomPrices(24, 60000, 65000) }
-            },
-            {
-                id: 'ethereum',
-                symbol: 'eth',
-                name: 'Ethereum',
-                image: 'https://assets.coingecko.com/coins/images/279/large/ethereum.png',
-                current_price: 3117.08,
-                market_cap: 374259723649,
-                market_cap_rank: 2,
-                total_volume: 15987654321,
-                price_change_24h: 38.17,
-                price_change_percentage_24h: 1.23,
-                sparkline_in_7d: { price: generateRandomPrices(24, 3000, 3200) }
+        // Construir URL para a API CoinGecko
+        const url = `https://api.coingecko.com/api/v3/${endpoint}`;
+        console.log(`Proxying CoinGecko API request to: ${url}`);
+        console.log('Query params:', queryParams);
+
+        // Fazer a chamada à API CoinGecko
+        const response = await axios.get(url, {
+            params: queryParams,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             }
-        ];
+        });
 
-        res.json(simulatedData);
-    } else {
-        // Dados genéricos para outras chamadas
-        res.json({ status: 'success', message: 'Simulated data', data: [] });
+        // Retornar os dados reais para o cliente
+        res.json(response.data);
+    } catch (error) {
+        console.error('Error proxying CoinGecko API request:', error.message);
+        if (error.response) {
+            console.error('Response status:', error.response.status);
+            console.error('Response data:', error.response.data);
+        }
+        res.status(error.response?.status || 500).json({
+            error: 'Failed to fetch data from CoinGecko API',
+            details: error.message
+        });
     }
 });
-
-// Função auxiliar para gerar preços aleatórios
-function generateRandomPrices(count, min, max) {
-    const prices = [];
-    for (let i = 0; i < count; i++) {
-        prices.push(min + Math.random() * (max - min));
-    }
-    return prices;
-}
 
 // Rota para proxy da API Alpha Vantage
 app.get('/api/alpha-vantage/:endpoint(*)', async (req, res) => {
@@ -350,18 +332,7 @@ app.get('/api/pluggy/connect-token', async (req, res) => {
             });
         }
 
-        // Check if we should use mock data (for development)
-        const useMockData = req.query.mock === 'true' || process.env.USE_MOCK_DATA === 'true';
-
-        if (useMockData) {
-            console.log('Using mock Pluggy Connect Token');
-            // Return a mock Connect Token
-            return res.json({
-                accessToken: 'mock-connect-token-' + Date.now(),
-                expiresIn: 900,
-                isMock: true
-            });
-        }
+        // Always use real Pluggy API - no mock data
 
         console.log('Getting Pluggy API key...');
         // Get a valid API key
@@ -394,12 +365,10 @@ app.get('/api/pluggy/connect-token', async (req, res) => {
             console.error('Response headers:', error.response.headers);
         }
 
-        // Return a mock token in case of error to avoid breaking the frontend
-        console.log('Returning mock token due to error');
-        res.json({
-            accessToken: 'mock-connect-token-' + Date.now(),
-            expiresIn: 900,
-            isMock: true
+        // Return error instead of mock token
+        res.status(500).json({
+            error: 'Failed to get Pluggy Connect Token',
+            details: error.message
         });
     }
 });
@@ -429,126 +398,9 @@ app.get('/api/pluggy/accounts', async (req, res) => {
             return res.status(400).json({ error: 'Item ID is required' });
         }
 
-        // Check if this is a mock item
-        if (itemId.startsWith('mock-')) {
-            console.log('Using mock accounts data for item:', itemId);
+        // No mock data - always use real Pluggy API
 
-            // Return mock accounts with slightly different balances each time
-            // to simulate account updates
-            const mockAccounts = {
-                results: [
-                    {
-                        id: 'mock-account-1',
-                        name: 'Conta Corrente',
-                        type: 'CHECKING',
-                        number: '12345-6',
-                        balance: 1250.75 + (Math.random() * 100 - 50),
-                        currency: 'BRL',
-                        institution: {
-                            name: 'Banco Demo',
-                            type: 'PERSONAL_BANK'
-                        }
-                    },
-                    {
-                        id: 'mock-account-2',
-                        name: 'Conta Poupança',
-                        type: 'SAVINGS',
-                        number: '12345-7',
-                        balance: 5430.20 + (Math.random() * 100 - 50),
-                        currency: 'BRL',
-                        institution: {
-                            name: 'Banco Demo',
-                            type: 'PERSONAL_BANK'
-                        }
-                    },
-                    {
-                        id: 'mock-account-3',
-                        name: 'Cartão de Crédito',
-                        type: 'CREDIT',
-                        number: '****-****-****-1234',
-                        balance: -750.30 + (Math.random() * 100 - 50),
-                        currency: 'BRL',
-                        institution: {
-                            name: 'Banco Demo',
-                            type: 'PERSONAL_BANK'
-                        }
-                    },
-                    {
-                        id: 'mock-account-4',
-                        name: 'Investimentos',
-                        type: 'INVESTMENT',
-                        number: '12345-8',
-                        balance: 10250.45 + (Math.random() * 500 - 250),
-                        currency: 'BRL',
-                        institution: {
-                            name: 'Banco Demo',
-                            type: 'INVESTMENT'
-                        }
-                    }
-                ]
-            };
-
-            // Add a delay to simulate API latency
-            await new Promise(resolve => setTimeout(resolve, 800));
-
-            return res.json(mockAccounts);
-        }
-
-        // Check if we should use mock data (for development)
-        const useMockData = req.query.mock === 'true' || process.env.USE_MOCK_DATA === 'true';
-
-        if (useMockData) {
-            console.log('Using real Pluggy data instead of mock data');
-
-            // Get a valid API key and fetch real data instead of using mock data
-            try {
-                const apiKey = await getPluggyApiKey();
-
-                // Request accounts for the item
-                const response = await axios.get(`${PLUGGY_API_URL}/accounts?itemId=${itemId}`, {
-                    headers: {
-                        'X-API-KEY': apiKey
-                    }
-                });
-
-                console.log('Successfully fetched real Pluggy data');
-                return res.json(response.data);
-            } catch (error) {
-                console.error('Error fetching real Pluggy data:', error.message);
-
-                // If we can't get real data, return a minimal mock dataset
-                const mockAccounts = {
-                    results: [
-                        {
-                            id: 'mock-account-1',
-                            name: 'Conta Corrente',
-                            type: 'CHECKING',
-                            number: '12345-6',
-                            balance: 10.89,
-                            currency: 'BRL',
-                            institution: {
-                                name: 'Pluggy Bank',
-                                type: 'PERSONAL_BANK'
-                            }
-                        },
-                        {
-                            id: 'mock-account-3',
-                            name: 'Cartão de Crédito',
-                            type: 'CREDIT',
-                            number: '****-****-****-1234',
-                            balance: -109.98,
-                            currency: 'BRL',
-                            institution: {
-                                name: 'Pluggy Bank',
-                                type: 'PERSONAL_BANK'
-                            }
-                        }
-                    ]
-                };
-
-                return res.json(mockAccounts);
-            }
-        }
+        // Always use real Pluggy API - no mock data fallback
 
         // Get a valid API key
         const apiKey = await getPluggyApiKey();
@@ -565,7 +417,7 @@ app.get('/api/pluggy/accounts', async (req, res) => {
     } catch (error) {
         console.error('Error getting Pluggy accounts:', error.message);
 
-        // Return error to the frontend
+        // Return error to the frontend - no fallback to mock data
         res.status(500).json({
             error: 'Failed to fetch accounts from Pluggy API',
             message: error.message
@@ -582,110 +434,9 @@ app.get('/api/pluggy/transactions', async (req, res) => {
             return res.status(400).json({ error: 'Account ID is required' });
         }
 
-        // Check if this is a mock account
-        if (accountId.startsWith('mock-')) {
-            console.log('Using mock transactions data for account:', accountId);
+        // No mock data - always use real Pluggy API
 
-            // Generate mock transactions
-            const mockTransactions = {
-                results: [
-                    {
-                        id: 'mock-tx-1',
-                        description: 'Supermercado Extra',
-                        amount: -156.78,
-                        date: new Date(Date.now() - 86400000).toISOString(), // Yesterday
-                        category: 'Alimentação'
-                    },
-                    {
-                        id: 'mock-tx-2',
-                        description: 'Transferência recebida',
-                        amount: 1200.00,
-                        date: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-                        category: 'Transferência'
-                    },
-                    {
-                        id: 'mock-tx-3',
-                        description: 'Netflix',
-                        amount: -39.90,
-                        date: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
-                        category: 'Entretenimento'
-                    },
-                    {
-                        id: 'mock-tx-4',
-                        description: 'Farmácia',
-                        amount: -85.60,
-                        date: new Date(Date.now() - 345600000).toISOString(), // 4 days ago
-                        category: 'Saúde'
-                    },
-                    {
-                        id: 'mock-tx-5',
-                        description: 'Salário',
-                        amount: 3500.00,
-                        date: new Date(Date.now() - 2592000000).toISOString(), // 30 days ago
-                        category: 'Salário'
-                    }
-                ]
-            };
-
-            // Add a delay to simulate API latency
-            await new Promise(resolve => setTimeout(resolve, 600));
-
-            return res.json(mockTransactions);
-        }
-
-        // Check if we should use mock data (for development)
-        const useMockData = req.query.mock === 'true' || process.env.USE_MOCK_DATA === 'true';
-
-        if (useMockData) {
-            console.log('Using real Pluggy transaction data instead of mock data');
-
-            // Get a valid API key and fetch real data instead of using mock data
-            try {
-                const apiKey = await getPluggyApiKey();
-
-                // Build query parameters
-                const queryParams = new URLSearchParams();
-                queryParams.append('accountId', accountId);
-                if (from) queryParams.append('from', from);
-                if (to) queryParams.append('to', to);
-                if (page) queryParams.append('page', page);
-                if (pageSize) queryParams.append('pageSize', pageSize);
-
-                // Request transactions for the account
-                const response = await axios.get(`${PLUGGY_API_URL}/transactions?${queryParams}`, {
-                    headers: {
-                        'X-API-KEY': apiKey
-                    }
-                });
-
-                console.log('Successfully fetched real Pluggy transaction data');
-                return res.json(response.data);
-            } catch (error) {
-                console.error('Error fetching real Pluggy transaction data:', error.message);
-
-                // If we can't get real data, return a minimal mock dataset
-                const mockTransactions = {
-                    results: [
-                        {
-                            id: 'mock-tx-1',
-                            description: 'Supermercado',
-                            amount: -156.78,
-                            date: new Date(Date.now() - 86400000).toISOString(), // Yesterday
-                            category: 'Alimentação'
-                        },
-                        {
-                            id: 'mock-tx-2',
-                            description: 'Transferência',
-                            amount: 1200.00,
-                            date: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-                            category: 'Transferência'
-                        }
-                    ]
-                };
-
-                return res.json(mockTransactions);
-            }
-        }
+        // Always use real Pluggy API - no mock data fallback
 
         // Build query parameters
         const queryParams = new URLSearchParams();
@@ -727,108 +478,9 @@ app.get('/api/pluggy/investments', async (req, res) => {
             return res.status(400).json({ error: 'Either Account ID or Item ID is required' });
         }
 
-        // Check if this is a mock account or item
-        if ((accountId && accountId.startsWith('mock-')) || (itemId && itemId.startsWith('mock-'))) {
-            console.log('Using mock investments data for:', accountId || itemId);
+        // No mock data - always use real Pluggy API
 
-            // Generate mock investments
-            const mockInvestments = {
-                results: [
-                    {
-                        id: 'mock-inv-1',
-                        name: 'CDB Banco Demo',
-                        type: 'FIXED_INCOME',
-                        balance: 5000.00 + (Math.random() * 100 - 50),
-                        amount: 5000.00,
-                        date: new Date(Date.now() - 2592000000).toISOString(), // 30 days ago
-                        performance: 0.08
-                    },
-                    {
-                        id: 'mock-inv-2',
-                        name: 'Tesouro Direto',
-                        type: 'GOVERNMENT_BOND',
-                        balance: 3500.45 + (Math.random() * 100 - 50),
-                        amount: 3000.00,
-                        date: new Date(Date.now() - 5184000000).toISOString(), // 60 days ago
-                        performance: 0.12
-                    },
-                    {
-                        id: 'mock-inv-3',
-                        name: 'Fundo de Ações',
-                        type: 'EQUITY',
-                        balance: 1750.00 + (Math.random() * 100 - 50),
-                        amount: 2000.00,
-                        date: new Date(Date.now() - 7776000000).toISOString(), // 90 days ago
-                        performance: -0.05
-                    }
-                ]
-            };
-
-            // Add a delay to simulate API latency
-            await new Promise(resolve => setTimeout(resolve, 700));
-
-            return res.json(mockInvestments);
-        }
-
-        // Check if we should use mock data (for development)
-        const useMockData = req.query.mock === 'true' || process.env.USE_MOCK_DATA === 'true';
-
-        if (useMockData) {
-            console.log('Using real Pluggy investment data instead of mock data');
-
-            // Get a valid API key and fetch real data instead of using mock data
-            try {
-                const apiKey = await getPluggyApiKey();
-
-                // Build the URL based on whether we have an account ID or item ID
-                let url;
-                if (accountId) {
-                    url = `${PLUGGY_API_URL}/investments?accountId=${accountId}`;
-                    console.log('Requesting real investments for account:', accountId);
-                } else {
-                    url = `${PLUGGY_API_URL}/investments?itemId=${itemId}`;
-                    console.log('Requesting real investments for item:', itemId);
-                }
-
-                // Request investments
-                const response = await axios.get(url, {
-                    headers: {
-                        'X-API-KEY': apiKey
-                    }
-                });
-
-                console.log('Successfully fetched real Pluggy investment data');
-                return res.json(response.data);
-            } catch (error) {
-                console.error('Error fetching real Pluggy investment data:', error.message);
-
-                // If we can't get real data, return a minimal mock dataset
-                const mockInvestments = {
-                    results: [
-                        {
-                            id: 'mock-inv-1',
-                            name: 'Private Security Investments',
-                            type: 'FIXED_INCOME',
-                            balance: 13079.81,
-                            amount: 13000.00,
-                            date: new Date(Date.now() - 2592000000).toISOString(), // 30 days ago
-                            performance: 0.08
-                        },
-                        {
-                            id: 'mock-inv-2',
-                            name: 'Mutual Funds Investments',
-                            type: 'GOVERNMENT_BOND',
-                            balance: 3339.39,
-                            amount: 3300.00,
-                            date: new Date(Date.now() - 5184000000).toISOString(), // 60 days ago
-                            performance: 0.12
-                        }
-                    ]
-                };
-
-                return res.json(mockInvestments);
-            }
-        }
+        // Always use real Pluggy API - no mock data fallback
 
         // Get a valid API key
         const apiKey = await getPluggyApiKey();
@@ -921,43 +573,7 @@ app.post('/api/pluggy/items/:itemId/refresh', async (req, res) => {
             console.log(`Received refresh parameters for item ${itemId}:`, parameters);
         }
 
-        // Check if this is a mock item
-        if (itemId.startsWith('mock-')) {
-            console.log('Refreshing mock item:', itemId);
-
-            // Add a delay to simulate API latency
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // Return success
-            return res.json({
-                id: itemId,
-                status: 'UPDATED',
-                executionStatus: 'SUCCESS',
-                lastUpdatedAt: new Date().toISOString(),
-                message: 'Mock item refreshed successfully',
-                isMock: true
-            });
-        }
-
-        // Check if we should use mock data (for development)
-        const useMockData = req.query.mock === 'true' || process.env.USE_MOCK_DATA === 'true';
-
-        if (useMockData) {
-            console.log('Using mock refresh for item:', itemId);
-
-            // Add a delay to simulate API latency
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // Return success
-            return res.json({
-                id: itemId,
-                status: 'UPDATED',
-                executionStatus: 'SUCCESS',
-                lastUpdatedAt: new Date().toISOString(),
-                message: 'Item refreshed successfully (mock)',
-                isMock: true
-            });
-        }
+        // Always use real Pluggy API - no mock data
 
         // Get a valid API key
         const apiKey = await getPluggyApiKey();
@@ -978,16 +594,10 @@ app.post('/api/pluggy/items/:itemId/refresh', async (req, res) => {
     } catch (error) {
         console.error('Error refreshing Pluggy item:', error.message);
 
-        // Return a mock success response to avoid breaking the frontend
-        console.log('Returning mock success despite error in item refresh');
-        res.json({
-            id: req.params.itemId,
-            status: 'UPDATED',
-            executionStatus: 'SUCCESS',
-            lastUpdatedAt: new Date().toISOString(),
-            message: 'Item refreshed successfully (with errors)',
-            isMock: true,
-            error: error.message
+        // Return error instead of mock success
+        res.status(500).json({
+            error: 'Failed to refresh Pluggy item',
+            message: error.message
         });
     }
 });
@@ -1001,29 +611,7 @@ app.delete('/api/pluggy/items/:itemId', async (req, res) => {
             return res.status(400).json({ error: 'Item ID is required' });
         }
 
-        // Check if this is a mock item
-        if (itemId.startsWith('mock-')) {
-            console.log('Deleting mock item:', itemId);
-
-            // Add a delay to simulate API latency
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            // Return success
-            return res.json({ success: true, message: 'Mock item disconnected successfully' });
-        }
-
-        // Check if we should use mock data (for development)
-        const useMockData = req.query.mock === 'true' || process.env.USE_MOCK_DATA === 'true';
-
-        if (useMockData) {
-            console.log('Using mock delete for item:', itemId);
-
-            // Add a delay to simulate API latency
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            // Return success
-            return res.json({ success: true, message: 'Item disconnected successfully (mock)' });
-        }
+        // Always use real Pluggy API - no mock data
 
         // Get a valid API key
         const apiKey = await getPluggyApiKey();
@@ -1040,13 +628,10 @@ app.delete('/api/pluggy/items/:itemId', async (req, res) => {
     } catch (error) {
         console.error('Error deleting Pluggy item:', error.message);
 
-        // Return success anyway to avoid breaking the frontend
-        console.log('Returning success despite error in item deletion');
-        res.json({
-            success: true,
-            message: 'Item disconnected successfully (with errors)',
-            isMock: true,
-            error: error.message
+        // Return error instead of mock success
+        res.status(500).json({
+            error: 'Failed to delete Pluggy item',
+            message: error.message
         });
     }
 });

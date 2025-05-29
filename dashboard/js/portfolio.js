@@ -10,7 +10,7 @@ class PortfolioManager {
             lastUpdated: null
         };
         this.currentAssetId = null;
-        this.mockPrices = {}; // For simulating current prices
+        this.currentPrices = {}; // For storing real current prices
 
         // Sorting state
         this.sortConfig = {
@@ -36,8 +36,8 @@ class PortfolioManager {
         // Set up event listeners
         this.setupEventListeners();
 
-        // Generate mock current prices for demo
-        this.generateMockPrices();
+        // Load real current prices from APIs
+        this.loadCurrentPrices();
 
         // Render the portfolio
         this.renderPortfolio();
@@ -189,8 +189,11 @@ class PortfolioManager {
         if (savedPortfolio) {
             this.portfolio = JSON.parse(savedPortfolio);
         } else {
-            // If no portfolio exists, create a sample portfolio for demo
-            this.createSamplePortfolio();
+            // If no portfolio exists, initialize empty portfolio
+            this.portfolio = {
+                assets: [],
+                lastUpdated: new Date().toISOString()
+            };
         }
     }
 
@@ -202,84 +205,101 @@ class PortfolioManager {
         localStorage.setItem('userPortfolio', JSON.stringify(this.portfolio));
     }
 
-    /**
-     * Create a sample portfolio for demonstration
-     */
-    createSamplePortfolio() {
-        this.portfolio = {
-            assets: [
-                {
-                    id: this.generateId(),
-                    symbol: 'PETR4',
-                    name: 'Petrobras',
-                    assetClass: 'stock',
-                    quantity: 100,
-                    purchasePrice: 28.50,
-                    purchaseDate: '2023-01-15',
-                    notes: 'Compra inicial para diversificação'
-                },
-                {
-                    id: this.generateId(),
-                    symbol: 'ITUB4',
-                    name: 'Itaú Unibanco',
-                    assetClass: 'stock',
-                    quantity: 200,
-                    purchasePrice: 32.75,
-                    purchaseDate: '2023-02-10',
-                    notes: 'Exposição ao setor bancário'
-                },
-                {
-                    id: this.generateId(),
-                    symbol: 'HGLG11',
-                    name: 'CSHG Logística',
-                    assetClass: 'reit',
-                    quantity: 50,
-                    purchasePrice: 175.20,
-                    purchaseDate: '2023-03-05',
-                    notes: 'FII de galpões logísticos'
-                },
-                {
-                    id: this.generateId(),
-                    symbol: 'AAPL',
-                    name: 'Apple Inc.',
-                    assetClass: 'international',
-                    quantity: 10,
-                    purchasePrice: 150.25,
-                    purchaseDate: '2023-04-20',
-                    notes: 'Exposição ao setor de tecnologia'
-                },
-                {
-                    id: this.generateId(),
-                    symbol: 'BTC',
-                    name: 'Bitcoin',
-                    assetClass: 'crypto',
-                    quantity: 0.05,
-                    purchasePrice: 35000.00,
-                    purchaseDate: '2023-05-15',
-                    notes: 'Pequena alocação em cripto'
-                }
-            ],
-            lastUpdated: new Date().toISOString()
-        };
+    // Sample portfolio function removed - using only real user data
 
-        this.savePortfolio();
+    /**
+     * Load real current prices for assets from APIs
+     */
+    async loadCurrentPrices() {
+        // Clear existing prices
+        this.currentPrices = {};
+
+        // Load current prices for each asset from real APIs
+        for (const asset of this.portfolio.assets) {
+            try {
+                const currentPrice = await this.fetchCurrentPrice(asset.symbol, asset.assetClass);
+                if (currentPrice) {
+                    this.currentPrices[asset.id] = currentPrice;
+                } else {
+                    // If no real price available, use purchase price as fallback
+                    this.currentPrices[asset.id] = asset.purchasePrice;
+                }
+            } catch (error) {
+                console.error(`Error fetching price for ${asset.symbol}:`, error);
+                // Use purchase price as fallback
+                this.currentPrices[asset.id] = asset.purchasePrice;
+            }
+        }
+
+        // Re-render portfolio after prices are loaded
+        this.renderPortfolio();
     }
 
     /**
-     * Generate mock current prices for assets
+     * Fetch current price for a specific asset
      */
-    generateMockPrices() {
-        // Clear existing mock prices
-        this.mockPrices = {};
+    async fetchCurrentPrice(symbol, assetClass) {
+        try {
+            // Use different APIs based on asset class
+            switch (assetClass) {
+                case 'stock':
+                    return await this.fetchStockPrice(symbol);
+                case 'crypto':
+                    return await this.fetchCryptoPrice(symbol);
+                case 'reit':
+                    return await this.fetchStockPrice(symbol); // REITs trade like stocks
+                case 'international':
+                    return await this.fetchStockPrice(symbol);
+                default:
+                    return null;
+            }
+        } catch (error) {
+            console.error(`Error fetching price for ${symbol}:`, error);
+            return null;
+        }
+    }
 
-        // Generate a mock price for each asset
-        this.portfolio.assets.forEach(asset => {
-            // Generate a random price change between -15% and +25%
-            const changePercent = (Math.random() * 40) - 15;
-            const currentPrice = asset.purchasePrice * (1 + (changePercent / 100));
+    /**
+     * Fetch stock price from financial APIs
+     */
+    async fetchStockPrice(symbol) {
+        try {
+            // Try Finnhub API first
+            const response = await fetch(`/api/finnhub/quote?symbol=${symbol}`);
+            if (response.ok) {
+                const data = await response.json();
+                return data.c; // Current price
+            }
+        } catch (error) {
+            console.error(`Error fetching stock price for ${symbol}:`, error);
+        }
+        return null;
+    }
 
-            this.mockPrices[asset.id] = parseFloat(currentPrice.toFixed(2));
-        });
+    /**
+     * Fetch crypto price from CoinGecko API
+     */
+    async fetchCryptoPrice(symbol) {
+        try {
+            // Map common crypto symbols to CoinGecko IDs
+            const cryptoMap = {
+                'BTC': 'bitcoin',
+                'ETH': 'ethereum',
+                'ADA': 'cardano',
+                'DOT': 'polkadot'
+            };
+
+            const coinId = cryptoMap[symbol.toUpperCase()] || symbol.toLowerCase();
+            const response = await fetch(`/api/coingecko/simple/price?ids=${coinId}&vs_currencies=usd`);
+
+            if (response.ok) {
+                const data = await response.json();
+                return data[coinId]?.usd;
+            }
+        } catch (error) {
+            console.error(`Error fetching crypto price for ${symbol}:`, error);
+        }
+        return null;
     }
 
     /**
@@ -379,7 +399,7 @@ class PortfolioManager {
         // Calculate total portfolio value first
         let totalPortfolioValue = 0;
         this.portfolio.assets.forEach(asset => {
-            const currentPrice = this.mockPrices[asset.id] || asset.purchasePrice;
+            const currentPrice = this.currentPrices[asset.id] || asset.purchasePrice;
             const assetValue = currentPrice * asset.quantity;
             totalPortfolioValue += assetValue;
         });
@@ -418,20 +438,20 @@ class PortfolioManager {
                         bValue = b.purchasePrice;
                         break;
                     case 'currentPrice':
-                        aValue = this.mockPrices[a.id] || a.purchasePrice;
-                        bValue = this.mockPrices[b.id] || b.purchasePrice;
+                        aValue = this.currentPrices[a.id] || a.purchasePrice;
+                        bValue = this.currentPrices[b.id] || b.purchasePrice;
                         break;
                     case 'totalValue':
-                        aValue = (this.mockPrices[a.id] || a.purchasePrice) * a.quantity;
-                        bValue = (this.mockPrices[b.id] || b.purchasePrice) * b.quantity;
+                        aValue = (this.currentPrices[a.id] || a.purchasePrice) * a.quantity;
+                        bValue = (this.currentPrices[b.id] || b.purchasePrice) * b.quantity;
                         break;
                     case 'portfolioPercentage':
                         aValue = a.portfolioPercentage;
                         bValue = b.portfolioPercentage;
                         break;
                     case 'changePercent':
-                        const aCurrentPrice = this.mockPrices[a.id] || a.purchasePrice;
-                        const bCurrentPrice = this.mockPrices[b.id] || b.purchasePrice;
+                        const aCurrentPrice = this.currentPrices[a.id] || a.purchasePrice;
+                        const bCurrentPrice = this.currentPrices[b.id] || b.purchasePrice;
                         aValue = ((aCurrentPrice - a.purchasePrice) / a.purchasePrice) * 100;
                         bValue = ((bCurrentPrice - b.purchasePrice) / b.purchasePrice) * 100;
                         break;
@@ -451,7 +471,7 @@ class PortfolioManager {
 
         // Add each asset to the table
         assetsToRender.forEach(asset => {
-            const currentPrice = this.mockPrices[asset.id] || asset.purchasePrice;
+            const currentPrice = this.currentPrices[asset.id] || asset.purchasePrice;
             const totalValue = currentPrice * asset.quantity;
             const changePercent = ((currentPrice - asset.purchasePrice) / asset.purchasePrice) * 100;
             const changeClass = changePercent >= 0 ? 'positive' : 'negative';
@@ -621,8 +641,8 @@ class PortfolioManager {
 
         if (!canvas) return;
 
-        // Generate mock performance data for demonstration
-        const performanceData = this.generateMockPerformanceData();
+        // Generate real performance data based on portfolio history
+        const performanceData = this.generateRealPerformanceData();
 
         // Prepare data for chart
         const data = {
@@ -838,8 +858,8 @@ class PortfolioManager {
         // Save portfolio
         this.savePortfolio();
 
-        // Generate new mock prices
-        this.generateMockPrices();
+        // Load new current prices
+        this.loadCurrentPrices();
 
         // Update UI
         this.renderPortfolio();
@@ -871,8 +891,8 @@ class PortfolioManager {
             // Save portfolio
             this.savePortfolio();
 
-            // Generate new mock prices
-            this.generateMockPrices();
+            // Load new current prices
+            this.loadCurrentPrices();
 
             // Update UI
             this.renderPortfolio();
@@ -905,7 +925,7 @@ class PortfolioManager {
 
         // Calculate total value and cost
         this.portfolio.assets.forEach(asset => {
-            const currentPrice = this.mockPrices[asset.id] || asset.purchasePrice;
+            const currentPrice = this.currentPrices[asset.id] || asset.purchasePrice;
             const totalValue = currentPrice * asset.quantity;
             const totalCost = asset.purchasePrice * asset.quantity;
 
@@ -950,7 +970,7 @@ class PortfolioManager {
 
         // Calculate total value and class totals
         this.portfolio.assets.forEach(asset => {
-            const currentPrice = this.mockPrices[asset.id] || asset.purchasePrice;
+            const currentPrice = this.currentPrices[asset.id] || asset.purchasePrice;
             const value = currentPrice * asset.quantity;
 
             classTotals[asset.assetClass] = (classTotals[asset.assetClass] || 0) + value;
@@ -975,23 +995,27 @@ class PortfolioManager {
     }
 
     /**
-     * Generate mock performance data for the chart
+     * Generate real performance data based on portfolio history
      */
-    generateMockPerformanceData() {
+    generateRealPerformanceData() {
         const data = {
             labels: [],
             values: []
         };
 
-        // Calculate total portfolio value
-        const totalValue = this.portfolio.assets.reduce((total, asset) => {
-            const currentPrice = this.mockPrices[asset.id] || asset.purchasePrice;
+        // Calculate current total portfolio value
+        const currentTotalValue = this.portfolio.assets.reduce((total, asset) => {
+            const currentPrice = this.currentPrices[asset.id] || asset.purchasePrice;
             return total + (currentPrice * asset.quantity);
         }, 0);
 
-        // Generate data for the last 12 months
+        // If no assets, return empty data
+        if (this.portfolio.assets.length === 0) {
+            return data;
+        }
+
+        // Generate data for the last 12 months based on purchase dates
         const today = new Date();
-        let currentValue = totalValue * 0.7; // Start at 70% of current value
 
         for (let i = 11; i >= 0; i--) {
             const date = new Date(today);
@@ -999,20 +1023,27 @@ class PortfolioManager {
 
             // Format date as month name
             const monthName = date.toLocaleString('pt-BR', { month: 'short' });
-
-            // Add label and value
             data.labels.push(monthName);
 
-            // Generate a random change between -5% and +8%
-            const changePercent = (Math.random() * 13) - 5;
-            currentValue = currentValue * (1 + (changePercent / 100));
+            // Calculate portfolio value at this point in time
+            let portfolioValueAtDate = 0;
 
-            // Ensure the final value matches the current portfolio value
-            if (i === 0) {
-                currentValue = totalValue;
-            }
+            this.portfolio.assets.forEach(asset => {
+                const assetPurchaseDate = new Date(asset.purchaseDate);
 
-            data.values.push(currentValue);
+                // Only include assets that were purchased before or on this date
+                if (assetPurchaseDate <= date) {
+                    // Use purchase price for historical data (real historical prices would require API calls)
+                    portfolioValueAtDate += asset.purchasePrice * asset.quantity;
+                }
+            });
+
+            data.values.push(portfolioValueAtDate);
+        }
+
+        // Ensure the last value reflects current prices
+        if (data.values.length > 0) {
+            data.values[data.values.length - 1] = currentTotalValue;
         }
 
         return data;
