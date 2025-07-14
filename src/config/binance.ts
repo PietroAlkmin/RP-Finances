@@ -1,35 +1,35 @@
 /**
- * Configuração para integração com Binance
- * IMPORTANTE: Configure suas credenciais aqui ou use variáveis de ambiente
+ * Configuração de exemplo para integração com Binance
+ * Arquivo de exemplo - NÃO commitar com chaves reais
  */
 
-import type { BinanceConfig } from '../ts/integrations/binance/BinanceTypes.js';
+import type { BinanceConfig } from '../ts/integrations/binance/BinanceTypes';
+
+// Carregar variáveis de ambiente
+import 'dotenv/config';
 
 // ===== CONFIGURAÇÃO BINANCE =====
 export const BINANCE_CONFIG: BinanceConfig = {
-  // IMPORTANTE: Credenciais são enviadas pelo proxy, não precisam estar no frontend
-  // O frontend envia apenas requisições para o proxy que adiciona as credenciais
-  apiKey: 'DUMMY_KEY', // Não usado no frontend - proxy adiciona as credenciais
+  // Usar variáveis de ambiente do arquivo .env
+  apiKey: process.env.BINANCE_API_KEY || 'SUA_BINANCE_API_KEY_AQUI',
+  apiSecret: process.env.BINANCE_API_SECRET || 'SUA_BINANCE_API_SECRET_AQUI',
   
-  // Secret Key - também não usado no frontend
-  apiSecret: 'DUMMY_SECRET', // Não usado no frontend - proxy adiciona as credenciais
+  // URL base (pode ser omitida para usar produção)
+  baseUrl: process.env.BINANCE_BASE_URL, // undefined = produção
   
-  // URL base (undefined = produção, ou especifique testnet)
-  baseUrl: undefined, // Para produção
-  
-  // Testnet (false = produção, true = testnet)
-  testnet: false
+  // Testnet (recomendado para desenvolvimento)
+  testnet: process.env.NODE_ENV === 'development' ? true : false
 };
 
 // ===== VALIDAÇÃO =====
 export function validateBinanceConfig(): boolean {
   if (!BINANCE_CONFIG.apiKey || BINANCE_CONFIG.apiKey === 'SUA_BINANCE_API_KEY_AQUI') {
-    console.warn('⚠️ BINANCE_API_KEY não configurada');
+    console.error('❌ BINANCE_API_KEY não configurada');
     return false;
   }
   
   if (!BINANCE_CONFIG.apiSecret || BINANCE_CONFIG.apiSecret === 'SUA_BINANCE_API_SECRET_AQUI') {
-    console.warn('⚠️ BINANCE_API_SECRET não configurada');
+    console.error('❌ BINANCE_API_SECRET não configurada');
     return false;
   }
   
@@ -92,7 +92,7 @@ export const CURRENCY_MAPPING = {
   }
 };
 
-// ===== INSTRUÇÕES DE CONFIGURAÇÃO =====
+// ===== INSTRUÇÕES DE SETUP =====
 export const SETUP_INSTRUCTIONS = `
 🚀 CONFIGURAÇÃO BINANCE - PASSO A PASSO
 
@@ -108,14 +108,16 @@ export const SETUP_INSTRUCTIONS = `
    • NUNCA compartilhe suas chaves!
 
 3. 🛠️ CONFIGURAR NO PROJETO:
-   • Edite este arquivo (src/config/binance.ts)
-   • Substitua as chaves nas linhas apiKey e apiSecret
-   • IMPORTANTE: Não commite chaves reais no Git!
+   • Crie arquivo .env na raiz do projeto
+   • Adicione as linhas:
+     BINANCE_API_KEY=sua_api_key_aqui
+     BINANCE_API_SECRET=sua_secret_key_aqui
+     NODE_ENV=development
 
 4. 🧪 TESTAR (OPCIONAL - TESTNET):
    • Acesse: https://testnet.binance.vision/
    • Crie conta de teste
-   • Configure testnet: true
+   • Configure BINANCE_BASE_URL=https://testnet.binance.vision
    • Use para desenvolvimento sem riscos
 
 5. ✅ VALIDAR:
