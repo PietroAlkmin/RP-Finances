@@ -6,8 +6,6 @@
 import { InvestmentCollector } from './portfolio/InvestmentCollector.js';
 import type { PluggyConfig, Investment, PortfolioSummary, InvestmentType } from './integrations/pluggy/PluggyTypes.js';
 import { ENVIRONMENT_CONFIG } from '../config/environment.js';
-import { BinanceInvestmentCollector } from './integrations/binance/BinanceInvestmentCollector.js';
-import { BINANCE_CONFIG, validateBinanceConfig } from '../config/binance.js';
 
 /**
  * Configuração da aplicação
@@ -25,17 +23,10 @@ const APP_CONFIG = {
  */
 class PortfolioApp {
   private collector: InvestmentCollector;
-  private binanceCollector: BinanceInvestmentCollector | null = null;
   private currentInvestments: Investment[] = [];
 
   constructor() {
     this.collector = new InvestmentCollector(APP_CONFIG.pluggy);
-    
-    // Inicializar Binance se configurado
-    if (validateBinanceConfig()) {
-      this.binanceCollector = new BinanceInvestmentCollector(BINANCE_CONFIG);
-      console.log('🟠 Binance configurado e pronto para uso');
-    }
   }
 
   /**
@@ -66,54 +57,22 @@ class PortfolioApp {
    * Configura os event listeners da interface
    */
   private setupEventListeners(): void {
-    // Botões de conectar contas - agora abrem modal de seleção
+    // Botões de conectar contas
     const connectBtn = document.getElementById('connectBtn');
     const connectBtn2 = document.getElementById('connectBtn2');
 
     if (connectBtn) {
-      connectBtn.addEventListener('click', () => this.showIntegrationModal());
+      connectBtn.addEventListener('click', () => this.handleConnectAccounts());
     }
     if (connectBtn2) {
-      connectBtn2.addEventListener('click', () => this.showIntegrationModal());
-    }
-
-    // Modal de seleção de integrações
-    const closeModal = document.getElementById('closeModal');
-    const integrationModal = document.getElementById('integrationModal');
-    const connectPluggy = document.getElementById('connectPluggy');
-    const connectBinance = document.getElementById('connectBinance');
-
-    if (closeModal) {
-      closeModal.addEventListener('click', () => this.hideIntegrationModal());
-    }
-
-    if (integrationModal) {
-      integrationModal.addEventListener('click', (e) => {
-        if (e.target === integrationModal) {
-          this.hideIntegrationModal();
-        }
-      });
-    }
-
-    if (connectPluggy) {
-      connectPluggy.addEventListener('click', () => {
-        this.hideIntegrationModal();
-        this.handleConnectPluggy();
-      });
-    }
-
-    if (connectBinance) {
-      connectBinance.addEventListener('click', () => {
-        this.hideIntegrationModal();
-        this.handleConnectBinance();
-      });
+      connectBtn2.addEventListener('click', () => this.handleConnectAccounts());
     }
 
     // Event listener dinâmico para botões criados na renderização
     document.addEventListener('click', (event) => {
       const target = event.target as HTMLElement;
       if (target && target.classList.contains('btn-premium')) {
-        this.showIntegrationModal();
+        this.handleConnectAccounts();
       }
     });
   }
@@ -519,6 +478,53 @@ class PortfolioApp {
   }
 
   /**
+   * Manipula o clique no botão de conectar contas
+   */
+  /**
+   * Manipula o clique no botão de conectar contas
+   */
+  private async handleConnectAccounts(): Promise<void> {
+    console.log('🔗 Iniciando Pluggy Connect Widget...');
+    
+    try {
+      this.showStatus('Obtendo token de conexão...', true);
+      
+      // Obtém connect token da API Pluggy
+      const connectToken = await this.getConnectToken();
+      
+      this.showStatus('', false);
+      
+      // Configura e abre o Pluggy Connect Widget oficial
+      const pluggyConnect = new (window as any).PluggyConnect({
+        connectToken: connectToken,
+        includeSandbox: true, // Inclui contas sandbox do Pluggy
+        onSuccess: (itemData: any) => {
+          console.log('✅ Conta conectada com sucesso:', itemData);
+          this.onAccountConnected(itemData);
+        },
+        onError: (error: any) => {
+          console.error('❌ Erro ao conectar conta:', error);
+          this.showError('Erro ao conectar conta: ' + (error.message || 'Erro desconhecido'));
+        },
+        onOpen: () => {
+          console.log('📱 Widget Pluggy aberto');
+        },
+        onClose: () => {
+          console.log('📱 Widget Pluggy fechado');
+        }
+      });
+
+      // Abre o widget
+      pluggyConnect.init();
+      
+    } catch (error) {
+      console.error('❌ Erro ao inicializar Pluggy Connect:', error);
+      this.showStatus('', false);
+      this.showError('Erro ao inicializar conexão de contas');
+    }
+  }
+
+  /**
    * Obtém connect token da API Pluggy
    */
   private async getConnectToken(): Promise<string> {
@@ -759,130 +765,6 @@ class PortfolioApp {
   /**
    * Gera dados de rentabilidade realistas quando os dados reais não estão disponíveis
    */
-
-  /**
-   * Mostra modal de seleção de integrações
-   */
-  private showIntegrationModal(): void {
-    const modal = document.getElementById('integrationModal');
-    const modalContent = document.getElementById('modalContent');
-    
-    if (modal && modalContent) {
-      modal.classList.remove('hidden');
-      // Força repaint antes da animação
-      requestAnimationFrame(() => {
-        modalContent.classList.remove('scale-95', 'opacity-0');
-        modalContent.classList.add('scale-100', 'opacity-100');
-      });
-    }
-  }
-
-  /**
-   * Esconde modal de seleção de integrações
-   */
-  private hideIntegrationModal(): void {
-    const modal = document.getElementById('integrationModal');
-    const modalContent = document.getElementById('modalContent');
-    
-    if (modal && modalContent) {
-      modalContent.classList.remove('scale-100', 'opacity-100');
-      modalContent.classList.add('scale-95', 'opacity-0');
-      
-      // Aguarda animação antes de esconder
-      setTimeout(() => {
-        modal.classList.add('hidden');
-      }, 300);
-    }
-  }
-
-  /**
-   * Manipula conexão via Pluggy (método original renomeado)
-   */
-  private async handleConnectPluggy(): Promise<void> {
-    console.log('🔗 Iniciando Pluggy Connect Widget...');
-    
-    try {
-      this.showStatus('Obtendo token de conexão...', true);
-      
-      // Obtém connect token da API Pluggy
-      const connectToken = await this.getConnectToken();
-      
-      this.showStatus('', false);
-      
-      // Configura e abre o Pluggy Connect Widget oficial
-      const pluggyConnect = new (window as any).PluggyConnect({
-        connectToken: connectToken,
-        includeSandbox: true, // Inclui contas sandbox do Pluggy
-        onSuccess: (itemData: any) => {
-          console.log('✅ Conta conectada com sucesso:', itemData);
-          this.onAccountConnected(itemData);
-        },
-        onError: (error: any) => {
-          console.error('❌ Erro ao conectar conta:', error);
-          this.showError('Erro ao conectar conta: ' + (error.message || 'Erro desconhecido'));
-        },
-        onOpen: () => {
-          console.log('📱 Widget Pluggy aberto');
-        },
-        onClose: () => {
-          console.log('📱 Widget Pluggy fechado');
-        }
-      });
-
-      // Abre o widget
-      pluggyConnect.init();
-      
-    } catch (error) {
-      console.error('❌ Erro ao conectar conta:', error);
-      this.showError('Erro ao conectar conta');
-    }
-  }
-
-  /**
-   * Manipula conexão via Binance
-   */
-  private async handleConnectBinance(): Promise<void> {
-    console.log('🟠 Iniciando conexão Binance...');
-    
-    if (!this.binanceCollector) {
-      this.showError('Binance não configurado. Configure suas credenciais no arquivo .env');
-      return;
-    }
-
-    try {
-      this.showStatus('Testando conexão Binance...', true);
-
-      // Testa conexão
-      const connected = await this.binanceCollector.testConnection();
-      
-      if (!connected) {
-        this.showStatus('', false);
-        this.showError('Falha ao conectar com Binance. Verifique suas credenciais.');
-        return;
-      }
-
-      this.showStatus('Coletando investimentos Binance...', true);
-
-      // Coleta investimentos
-      const binanceInvestments = await this.binanceCollector.collectInvestments();
-      
-      // Adiciona aos investimentos atuais
-      this.currentInvestments = [...this.currentInvestments, ...binanceInvestments];
-      
-      this.showStatus('', false);
-
-      // Calcula resumo e atualiza interface
-      const summary = this.collector.generateSummary(this.currentInvestments);
-      this.updateUI(summary);
-
-      this.showSuccess(`✅ ${binanceInvestments.length} investimentos Binance conectados com sucesso!`);
-
-    } catch (error) {
-      console.error('❌ Erro ao conectar Binance:', error);
-      this.showStatus('', false);
-      this.showError('Erro ao conectar Binance: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
-    }
-  }
 }
 
 /**

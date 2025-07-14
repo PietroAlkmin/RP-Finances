@@ -4,7 +4,7 @@
  * Baseado na biblioteca oficial binance-connector-typescript
  */
 
-import * as CryptoJS from 'crypto-js';
+import { createHmac } from 'crypto';
 import type {
   BinanceConfig,
   AccountInfo,
@@ -29,8 +29,7 @@ export class BinanceClient {
 
   constructor(config: BinanceConfig) {
     this.config = config;
-    // Usa proxy local para evitar CORS
-    this.baseUrl = 'http://localhost:3009/api/binance';
+    this.baseUrl = config.baseUrl || (config.testnet ? 'https://testnet.binance.vision' : 'https://api.binance.com');
   }
 
   /**
@@ -38,12 +37,7 @@ export class BinanceClient {
    */
   private async syncServerTime(): Promise<void> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/v3/time`, {
-        headers: {
-          'X-API-Key': this.config.apiKey,
-          'X-API-Secret': this.config.apiSecret
-        }
-      });
+      const response = await fetch(`${this.baseUrl}/api/v3/time`);
       if (response.ok) {
         const data = await response.json();
         const serverTime = data.serverTime;
@@ -67,7 +61,9 @@ export class BinanceClient {
    * Gera assinatura HMAC-SHA256 para autenticação
    */
   private generateSignature(queryString: string): string {
-    return CryptoJS.HmacSHA256(queryString, this.config.apiSecret).toString(CryptoJS.enc.Hex);
+    return createHmac('sha256', this.config.apiSecret)
+      .update(queryString)
+      .digest('hex');
   }
 
   /**
@@ -95,7 +91,7 @@ export class BinanceClient {
   }
 
   /**
-   * Faz requisição HTTP para API Binance via proxy local
+   * Faz requisição HTTP para API Binance
    */
   private async makeRequest<T>(
     method: 'GET' | 'POST' | 'DELETE',
@@ -103,18 +99,13 @@ export class BinanceClient {
     params: Record<string, any> = {},
     requiresAuth: boolean = false
   ): Promise<T> {
-    // Constrói URL completa concatenando baseUrl + endpoint
-    const fullUrl = `${this.baseUrl}${endpoint}`;
-    const url = new URL(fullUrl);
-    
+    const url = new URL(endpoint, this.baseUrl);
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
 
-    // Adiciona credenciais para o proxy se requer autenticação
     if (requiresAuth) {
-      headers['X-API-Key'] = this.config.apiKey;
-      headers['X-API-Secret'] = this.config.apiSecret;
+      headers['X-MBX-APIKEY'] = this.config.apiKey;
     }
 
     let body: string | undefined;
