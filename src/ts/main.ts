@@ -57,22 +57,72 @@ class PortfolioApp {
    * Configura os event listeners da interface
    */
   private setupEventListeners(): void {
-    // Botões de conectar contas
+    // Botões de conectar contas - agora abrem o modal
     const connectBtn = document.getElementById('connectBtn');
     const connectBtn2 = document.getElementById('connectBtn2');
 
     if (connectBtn) {
-      connectBtn.addEventListener('click', () => this.handleConnectAccounts());
+      connectBtn.addEventListener('click', () => this.showIntegrationModal());
     }
     if (connectBtn2) {
-      connectBtn2.addEventListener('click', () => this.handleConnectAccounts());
+      connectBtn2.addEventListener('click', () => this.showIntegrationModal());
     }
+
+    // Event listeners do modal
+    this.setupModalEventListeners();
 
     // Event listener dinâmico para botões criados na renderização
     document.addEventListener('click', (event) => {
       const target = event.target as HTMLElement;
       if (target && target.classList.contains('btn-premium')) {
-        this.handleConnectAccounts();
+        this.showIntegrationModal();
+      }
+    });
+  }
+
+  /**
+   * Configura os event listeners do modal de integrações
+   */
+  private setupModalEventListeners(): void {
+    const modal = document.getElementById('integrationModal');
+    const closeModal = document.getElementById('closeModal');
+    const connectPluggy = document.getElementById('connectPluggy');
+    const connectBinance = document.getElementById('connectBinance');
+
+    // Fechar modal
+    if (closeModal) {
+      closeModal.addEventListener('click', () => this.hideIntegrationModal());
+    }
+
+    // Fechar modal clicando fora
+    if (modal) {
+      modal.addEventListener('click', (event) => {
+        if (event.target === modal) {
+          this.hideIntegrationModal();
+        }
+      });
+    }
+
+    // Conectar via Pluggy
+    if (connectPluggy) {
+      connectPluggy.addEventListener('click', () => {
+        this.hideIntegrationModal();
+        this.handleConnectPluggy();
+      });
+    }
+
+    // Conectar via Binance
+    if (connectBinance) {
+      connectBinance.addEventListener('click', () => {
+        this.hideIntegrationModal();
+        this.handleConnectBinance();
+      });
+    }
+
+    // Fechar com ESC
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        this.hideIntegrationModal();
       }
     });
   }
@@ -478,54 +528,52 @@ class PortfolioApp {
   }
 
   /**
-   * Manipula o clique no botão de conectar contas
+   * Mostra uma mensagem informativa
    */
-  /**
-   * Manipula o clique no botão de conectar contas
-   */
-  private async handleConnectAccounts(): Promise<void> {
-    console.log('🔗 Iniciando Pluggy Connect Widget...');
-    
-    try {
-      this.showStatus('Obtendo token de conexão...', true);
-      
-      // Obtém connect token da API Pluggy
-      const connectToken = await this.getConnectToken();
-      
-      this.showStatus('', false);
-      
-      // Configura e abre o Pluggy Connect Widget oficial
-      const pluggyConnect = new (window as any).PluggyConnect({
-        connectToken: connectToken,
-        includeSandbox: true, // Inclui contas sandbox do Pluggy
-        onSuccess: (itemData: any) => {
-          console.log('✅ Conta conectada com sucesso:', itemData);
-          this.onAccountConnected(itemData);
-        },
-        onError: (error: any) => {
-          console.error('❌ Erro ao conectar conta:', error);
-          this.showError('Erro ao conectar conta: ' + (error.message || 'Erro desconhecido'));
-        },
-        onOpen: () => {
-          console.log('📱 Widget Pluggy aberto');
-        },
-        onClose: () => {
-          console.log('📱 Widget Pluggy fechado');
-        }
-      });
+  private showInfo(html: string): void {
+    const existing = document.getElementById('infoMessage');
+    if (existing) {
+      existing.remove();
+    }
 
-      // Abre o widget
-      pluggyConnect.init();
+    const infoDiv = document.createElement('div');
+    infoDiv.id = 'infoMessage';
+    infoDiv.className = 'fixed top-4 right-4 z-50 max-w-md bg-white rounded-xl shadow-2xl border border-blue-200 p-6 transform transition-all duration-300 translate-x-full';
+    infoDiv.innerHTML = `
+      <button onclick="this.parentElement.remove()" class="absolute top-3 right-3 w-6 h-6 bg-slate-100 hover:bg-slate-200 rounded-full flex items-center justify-center transition-colors duration-200">
+        <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+      ${html}
+    `;
+
+    document.body.appendChild(infoDiv);
+
+    // Anima a entrada
+    setTimeout(() => {
+      infoDiv.classList.remove('translate-x-full');
+      infoDiv.classList.add('translate-x-0');
+    }, 10);
+  }
+
+  /**
+   * Esconde a mensagem informativa
+   */
+  private hideInfo(): void {
+    const infoDiv = document.getElementById('infoMessage');
+    if (infoDiv) {
+      infoDiv.classList.remove('translate-x-0');
+      infoDiv.classList.add('translate-x-full');
       
-    } catch (error) {
-      console.error('❌ Erro ao inicializar Pluggy Connect:', error);
-      this.showStatus('', false);
-      this.showError('Erro ao inicializar conexão de contas');
+      setTimeout(() => {
+        infoDiv.remove();
+      }, 300);
     }
   }
 
   /**
-   * Obtém connect token da API Pluggy
+   * Obtém connect token da API Pluggy (movido do código órfão)
    */
   private async getConnectToken(): Promise<string> {
     try {
@@ -634,6 +682,132 @@ class PortfolioApp {
       console.error('❌ Erro após conectar conta:', error);
       this.showError('Conta conectada, mas erro ao coletar investimentos');
     }
+  }
+
+  /**
+   * Mostra o modal de seleção de integrações
+   */
+  private showIntegrationModal(): void {
+    console.log('📱 Abrindo modal de seleção de integrações...');
+    
+    const modal = document.getElementById('integrationModal');
+    const modalContent = document.getElementById('modalContent');
+    
+    if (modal && modalContent) {
+      modal.classList.remove('hidden');
+      
+      // Anima a entrada do modal
+      setTimeout(() => {
+        modalContent.classList.remove('scale-95', 'opacity-0');
+        modalContent.classList.add('scale-100', 'opacity-100');
+      }, 10);
+    }
+  }
+
+  /**
+   * Esconde o modal de seleção de integrações
+   */
+  private hideIntegrationModal(): void {
+    console.log('📱 Fechando modal de seleção de integrações...');
+    
+    const modal = document.getElementById('integrationModal');
+    const modalContent = document.getElementById('modalContent');
+    
+    if (modal && modalContent) {
+      // Anima a saída do modal
+      modalContent.classList.remove('scale-100', 'opacity-100');
+      modalContent.classList.add('scale-95', 'opacity-0');
+      
+      setTimeout(() => {
+        modal.classList.add('hidden');
+      }, 300);
+    }
+  }
+
+  /**
+   * Manipula a conexão via Pluggy
+   */
+  private async handleConnectPluggy(): Promise<void> {
+    console.log('🔗 Iniciando conexão Pluggy...');
+    
+    try {
+      this.showStatus('Obtendo token de conexão Pluggy...', true);
+      
+      // Obtém connect token da API Pluggy
+      const connectToken = await this.getConnectToken();
+      
+      this.showStatus('', false);
+      
+      // Configura e abre o Pluggy Connect Widget oficial
+      const pluggyConnect = new (window as any).PluggyConnect({
+        connectToken: connectToken,
+        includeSandbox: true, // Inclui contas sandbox do Pluggy
+        onSuccess: (itemData: any) => {
+          console.log('✅ Conta Pluggy conectada com sucesso:', itemData);
+          this.onAccountConnected(itemData);
+        },
+        onError: (error: any) => {
+          console.error('❌ Erro ao conectar conta Pluggy:', error);
+          this.showError('Erro ao conectar conta Pluggy: ' + (error.message || 'Erro desconhecido'));
+        },
+        onOpen: () => {
+          console.log('📱 Widget Pluggy aberto');
+        },
+        onClose: () => {
+          console.log('📱 Widget Pluggy fechado');
+        }
+      });
+
+      // Abre o widget
+      pluggyConnect.init();
+      
+    } catch (error) {
+      console.error('❌ Erro ao inicializar Pluggy Connect:', error);
+      this.showStatus('', false);
+      this.showError('Erro ao inicializar conexão Pluggy');
+    }
+  }
+
+  /**
+   * Manipula a conexão via Binance
+   */
+  private async handleConnectBinance(): Promise<void> {
+    console.log('🟡 Iniciando conexão Binance...');
+    
+    // Por enquanto, mostra mensagem informativa sobre Binance
+    // Em produção, aqui seria implementado um formulário para API Key e Secret
+    this.showInfo(`
+      <div class="space-y-4">
+        <h3 class="text-lg font-semibold text-slate-900">Integração Binance</h3>
+        <p class="text-slate-600">
+          Para conectar sua conta Binance, você precisará fornecer suas credenciais de API.
+        </p>
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div class="flex items-start space-x-3">
+            <svg class="w-5 h-5 text-yellow-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"></path>
+            </svg>
+            <div>
+              <p class="text-sm font-medium text-yellow-800">Funcionalidade em desenvolvimento</p>
+              <p class="text-sm text-yellow-700 mt-1">
+                A integração com Binance está sendo finalizada. Em breve você poderá conectar sua carteira de criptomoedas.
+              </p>
+            </div>
+          </div>
+        </div>
+        <p class="text-sm text-slate-500">
+          🔒 Suas credenciais serão criptografadas e armazenadas com segurança.
+        </p>
+      </div>
+    `);
+
+    // TODO: Implementar formulário para API Key e Secret da Binance
+    // TODO: Implementar teste de conexão
+    // TODO: Implementar coleta de dados da Binance
+    
+    setTimeout(() => {
+      this.hideInfo();
+    }, 8000);
   }
 
   /**

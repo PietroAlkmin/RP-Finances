@@ -7,15 +7,22 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "start": "vite dev --host"
+    "start": "vite dev --host",
+    "proxy": "node proxy-binance-simple.js",
+    "dev:full": "concurrently \"npm run proxy\" \"npm run dev\""
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.0",
-    "dotenv": "^17.2.0"
+    "cors": "^2.8.5",
+    "crypto-js": "^4.2.0",
+    "dotenv": "^17.2.0",
+    "express": "^5.1.0",
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "@types/node": "^20.9.0",
     "autoprefixer": "^10.4.16",
+    "concurrently": "^8.2.2",
     "postcss": "^8.4.31",
     "tailwindcss": "^3.3.5",
     "typescript": "^5.2.2",

@@ -212,6 +212,85 @@
         </main>
     </div>
 
+    <!-- Modal de Seleção de Integrações -->
+    <div id="integrationModal" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div id="modalContent" class="bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all duration-300 scale-95 opacity-0">
+            <!-- Header do Modal -->
+            <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-t-2xl p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold">Conectar Contas</h3>
+                            <p class="text-blue-100 text-sm">Escolha uma integração</p>
+                        </div>
+                    </div>
+                    <button id="closeModal" class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center hover:bg-white/30 transition-colors duration-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Conteúdo do Modal -->
+            <div class="p-6 space-y-4">
+                <!-- Opção Pluggy -->
+                <button id="connectPluggy" class="w-full p-4 border-2 border-blue-200 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all duration-300 group">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-300">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                            </svg>
+                        </div>
+                        <div class="text-left flex-1">
+                            <h4 class="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors duration-200">Pluggy</h4>
+                            <p class="text-sm text-slate-600">Conecte contas bancárias e investimentos</p>
+                            <div class="flex items-center mt-2 space-x-2">
+                                <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">Bancos</span>
+                                <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">Corretoras</span>
+                            </div>
+                        </div>
+                        <svg class="w-5 h-5 text-slate-400 group-hover:text-blue-500 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </div>
+                </button>
+
+                <!-- Opção Binance -->
+                <button id="connectBinance" class="w-full p-4 border-2 border-yellow-200 rounded-xl hover:border-yellow-400 hover:bg-yellow-50 transition-all duration-300 group">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-300">
+                            <span class="text-white font-bold text-lg">₿</span>
+                        </div>
+                        <div class="text-left flex-1">
+                            <h4 class="font-semibold text-slate-900 group-hover:text-yellow-600 transition-colors duration-200">Binance</h4>
+                            <p class="text-sm text-slate-600">Conecte sua carteira de criptomoedas</p>
+                            <div class="flex items-center mt-2 space-x-2">
+                                <span class="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full font-medium">Cripto</span>
+                                <span class="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full font-medium">Exchange</span>
+                            </div>
+                        </div>
+                        <svg class="w-5 h-5 text-slate-400 group-hover:text-yellow-500 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Footer do Modal -->
+            <div class="bg-slate-50 rounded-b-2xl p-4 text-center">
+                <p class="text-xs text-slate-500">
+                    🔒 Suas credenciais são seguras e criptografadas
+                </p>
+            </div>
+        </div>
+    </div>
+
     <!-- Script principal -->
     <script type="module" src="./ts/main.ts"></script>
 </body>
