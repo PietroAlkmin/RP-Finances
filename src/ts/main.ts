@@ -14,7 +14,7 @@ const APP_CONFIG = {
   // Configuração Pluggy (vem do arquivo de ambiente)
   pluggy: ENVIRONMENT_CONFIG.pluggy as PluggyConfig,
 
-  // IDs de exemplo para teste (em produção, vir do Supabase)
+  // IDs dos itens conectados (em produção, vir do Supabase)
   connectedItems: [] as string[],
 };
 
@@ -44,10 +44,6 @@ class PortfolioApp {
 
       // Mostra mensagem de boas-vindas
       this.showWelcomeMessage();
-
-      // Adiciona dados de exemplo para demonstração da UI
-      // TODO: Remover em produção
-      this.addSampleData();
 
       console.log('✅ RP-Finances inicializado com sucesso');
 
@@ -203,6 +199,17 @@ class PortfolioApp {
               const originalAmount = investment.amountOriginal || investment.amount || investment.balance;
               const profitPercent = originalAmount > 0 ? ((profit / originalAmount) * 100) : 0;
               
+              // Dados de rentabilidade da Pluggy
+              const annualRate = investment.annualRate || 0;
+              const monthlyRate = investment.lastMonthRate || 0;
+              const yearRate = investment.lastTwelveMonthsRate || 0;
+              const taxes = (investment.taxes || 0) + (investment.taxes2 || 0);
+              
+              // Determina cor baseada no lucro/prejuízo
+              const profitColor = profit >= 0 ? 'text-emerald-600' : 'text-red-600';
+              const profitBgColor = profit >= 0 ? 'bg-emerald-50' : 'bg-red-50';
+              const profitIcon = profit >= 0 ? '📈' : '📉';
+              
               const isPositive = profit > 0;
               const isNegative = profit < 0;
               
@@ -298,7 +305,7 @@ class PortfolioApp {
       // Configura e abre o Pluggy Connect Widget oficial
       const pluggyConnect = new (window as any).PluggyConnect({
         connectToken: connectToken,
-        includeSandbox: true, // Para testes
+        includeSandbox: true, // Inclui contas sandbox do Pluggy
         onSuccess: (itemData: any) => {
           console.log('✅ Conta conectada com sucesso:', itemData);
           this.onAccountConnected(itemData);
@@ -547,175 +554,6 @@ class PortfolioApp {
     
     return iconMap[type] || iconMap[type.toUpperCase()] || '💼';
   }
-
-  /**
-   * Dados de exemplo para demonstração da UI
-   */
-  private addSampleData(): void {
-    // Simula dados de investimentos para demonstração
-    const sampleInvestments: Investment[] = [
-      {
-        id: '1',
-        name: 'CDB Banco ABC',
-        code: 'CDB001',
-        type: 'FIXED_INCOME',
-        subtype: 'CDB',
-        balance: 15750.00,
-        currencyCode: 'BRL',
-        value: 100.50,
-        quantity: 156.72,
-        amount: 15000.00,
-        amountProfit: 750.00,
-        amountOriginal: 15000.00,
-        date: '2024-01-15',
-        dueDate: '2025-01-15',
-        status: 'ACTIVE',
-        institution: {
-          name: 'Banco ABC',
-          number: '001'
-        },
-        itemId: 'item1'
-      },
-      {
-        id: '2',
-        name: 'Tesouro IPCA+ 2035',
-        code: 'NTNB350035',
-        type: 'FIXED_INCOME',
-        subtype: 'TREASURY',
-        balance: 5420.30,
-        currencyCode: 'BRL',
-        value: 2710.15,
-        quantity: 2,
-        amount: 5200.00,
-        amountProfit: 220.30,
-        amountOriginal: 5200.00,
-        date: '2024-02-01',
-        dueDate: '2035-05-15',
-        status: 'ACTIVE',
-        institution: {
-          name: 'Tesouro Nacional',
-          number: '000'
-        },
-        itemId: 'item2'
-      },
-      {
-        id: '3',
-        name: 'Fundo Multimercado XYZ',
-        code: 'FUND001',
-        type: 'MUTUAL_FUND',
-        subtype: 'MULTIMARKET_FUND',
-        balance: 8935.67,
-        currencyCode: 'BRL',
-        value: 2.1589,
-        quantity: 4140.23,
-        amount: 8500.00,
-        amountProfit: 435.67,
-        amountOriginal: 8500.00,
-        date: '2024-01-20',
-        status: 'ACTIVE',
-        institution: {
-          name: 'Corretora XYZ',
-          number: '123'
-        },
-        itemId: 'item3'
-      },
-      {
-        id: '4',
-        name: 'LCI Banco ABC',
-        code: 'LCI002',
-        type: 'FIXED_INCOME',
-        subtype: 'LCI',
-        balance: 12100.00,
-        currencyCode: 'BRL',
-        value: 100.83,
-        quantity: 120.00,
-        amount: 12000.00,
-        amountProfit: 100.00,
-        amountOriginal: 12000.00,
-        date: '2024-03-01',
-        dueDate: '2026-03-01',
-        status: 'ACTIVE',
-        institution: {
-          name: 'Banco ABC',
-          number: '001'
-        },
-        itemId: 'item1'
-      },
-      {
-        id: '5',
-        name: 'Ações PETR4',
-        code: 'PETR4',
-        type: 'EQUITY',
-        subtype: 'STOCK',
-        balance: 3456.00,
-        currencyCode: 'BRL',
-        value: 28.80,
-        quantity: 120,
-        amount: 3600.00,
-        amountProfit: -144.00,
-        amountOriginal: 3600.00,
-        date: '2024-02-15',
-        status: 'ACTIVE',
-        institution: {
-          name: 'Corretora XYZ',
-          number: '123'
-        },
-        itemId: 'item3'
-      }
-    ];
-
-    // Atualiza a interface com os dados de exemplo
-    const totalBalance = sampleInvestments.reduce((sum, inv) => sum + inv.balance, 0);
-    const totalProfit = sampleInvestments.reduce((sum, inv) => sum + (inv.amountProfit || 0), 0);
-    const totalOriginal = sampleInvestments.reduce((sum, inv) => sum + (inv.amountOriginal || inv.amount), 0);
-    
-    const summary: PortfolioSummary = {
-      totalBalance: totalBalance,
-      totalProfit: totalProfit,
-      profitPercentage: totalOriginal > 0 ? (totalProfit / totalOriginal) * 100 : 0,
-      totalInvestments: sampleInvestments.length,
-      investments: sampleInvestments,
-      lastUpdated: new Date().toISOString(),
-      byType: {
-        FIXED_INCOME: {
-          count: 3,
-          balance: 33270.30,
-          percentage: 75.2
-        },
-        EQUITY: {
-          count: 1,
-          balance: 3456.00,
-          percentage: 7.8
-        },
-        MUTUAL_FUND: {
-          count: 1,
-          balance: 8935.67,
-          percentage: 17.0
-        }
-      },
-      accounts: []
-    };
-
-    this.updatePortfolioSummary(summary);
-    this.updateInvestmentsList(sampleInvestments);
-  }
-
-  /**
-   * Atualiza o resumo do portfólio na interface
-   */
-  private updatePortfolioSummary(summary: PortfolioSummary): void {
-    // Atualiza informações gerais
-    this.updateElement('totalValue', `R$ ${summary.totalBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
-    this.updateElement('totalProfit', `R$ ${summary.totalProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
-    this.updateElement('totalCount', summary.totalInvestments.toString());
-
-    // Atualiza porcentagem de lucro
-    const profitPercentage = (summary.totalProfit / summary.totalBalance) * 100;
-    this.updateElement('profitPercent', `${profitPercentage.toFixed(2)}%`);
-
-    // Atualiza timestamp
-    this.updateLastUpdateTime();
-  }
 }
 
 /**
@@ -730,7 +568,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     (window as any).app = app;
     (window as any).collectInvestments = () => app.collectInvestments();
 
-    console.log('🎯 Digite collectInvestments() no console para testar a coleta');
+    console.log('🎯 Digite collectInvestments() no console para coletar dados');
 
   } catch (error) {
     console.error('❌ Erro fatal na inicialização:', error);

@@ -262,13 +262,6 @@
   }
 }
 
-/* ===== RESPONSIVE BREAKPOINTS ===== */
-@media (max-width: 768px) {
-  .metric-card {
-    @apply hover:rotate-0;
-  }
-}
-
 /* ===== ANIMAÇÕES ===== */
 @keyframes fadeIn {
   from {

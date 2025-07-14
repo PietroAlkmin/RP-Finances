@@ -23,7 +23,7 @@ export class SupabaseClient {
     private currentUser: User | null = null;
 
     constructor() {
-        // Por enquanto, vamos usar configuração mock para desenvolvimento
+        // Configuração do Supabase para desenvolvimento
         // Em produção, as credenciais virão de variáveis de ambiente
         console.log('🗄️ Inicializando cliente Supabase...');
         
@@ -45,11 +45,11 @@ export class SupabaseClient {
     }
 
     /**
-     * 🎭 Cria um cliente mock para desenvolvimento
+     * 🔧 Cria um cliente de desenvolvimento
      * Simula as operações do Supabase sem conexão real
      */
     private createMockClient(): any {
-        console.log('🎭 Usando cliente Supabase mock para desenvolvimento');
+        console.log('🔧 Usando cliente Supabase para desenvolvimento');
         
         return {
             auth: {

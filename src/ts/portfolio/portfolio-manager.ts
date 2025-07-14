@@ -273,11 +273,10 @@ export class PortfolioManager {
      */
     private calculateMonthlyReturn(_accounts: ConnectedAccount[]): Promise<number> {
         try {
-            // Aqui seria calculado baseado em dados históricos
-            // Por enquanto, retornamos um valor simulado
-            const mockReturn = 2.35; // 2.35% de rentabilidade
-            console.log(`📈 Rentabilidade mensal: ${mockReturn}%`);
-            return Promise.resolve(mockReturn);
+            // TODO: Implementar cálculo real baseado em dados históricos
+            // Por enquanto, retorna 0 até implementar a lógica real
+            console.log('📈 Cálculo de rentabilidade será implementado em versão futura');
+            return Promise.resolve(0);
 
         } catch (error) {
             console.error('❌ Erro ao calcular rentabilidade:', error);
