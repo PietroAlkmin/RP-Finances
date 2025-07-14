@@ -1,409 +1,413 @@
 /**
- * 🎯 RP Finances - Arquivo Principal TypeScript
- * 
- * Este arquivo é o ponto de entrada da aplicação.
- * Responsável por:
- * - Inicializar a aplicação
- * - Configurar integrações com Supabase
- * - Gerenciar o estado global do portfolio
- * - Coordenar módulos de funcionalidades
+ * Arquivo principal da aplicação RP-Finances
+ * Responsável por inicializar a aplicação e coordenar os módulos
  */
 
-// Importações dos módulos da aplicação
-import { PortfolioManager } from './portfolio/portfolio-manager.js';
-import { SupabaseClient } from './integrations/supabase-client.js';
-import { UIManager } from './ui/ui-manager.js';
-
-// Tipos para estrutura de dados do portfolio
-interface PortfolioData {
-    totalAssets: number;
-    monthlyReturn: number;
-    lastUpdate: string;
-    connectedAccounts: ConnectedAccount[];
-    assetDistribution: AssetDistribution[];
-}
-
-interface ConnectedAccount {
-    id: string;
-    institutionName: string;
-    accountType: string;
-    balance: number;
-    currency: string;
-    lastSync: string;
-}
-
-interface AssetDistribution {
-    category: string;
-    value: number;
-    percentage: number;
-    color: string;
-}
+import { InvestmentCollector } from './portfolio/InvestmentCollector.js';
+import type { PluggyConfig, Investment, PortfolioSummary } from './integrations/pluggy/PluggyTypes.js';
+import { ENVIRONMENT_CONFIG } from '../config/environment.js';
 
 /**
- * 🚀 Classe principal da aplicação RP Finances
- * Coordena todos os módulos e gerencia o estado global
+ * Configuração da aplicação
  */
-class RPFinancesApp {
-    private portfolioManager: PortfolioManager;
-    private supabaseClient: SupabaseClient;
-    private uiManager: UIManager;
-    private portfolioData: PortfolioData | null = null;
+const APP_CONFIG = {
+  // Configuração Pluggy (vem do arquivo de ambiente)
+  pluggy: ENVIRONMENT_CONFIG.pluggy as PluggyConfig,
 
-    constructor() {
-        // Inicialização dos gerenciadores principais
-        this.supabaseClient = new SupabaseClient();
-        this.portfolioManager = new PortfolioManager(this.supabaseClient);
-        this.uiManager = new UIManager();
-        
-        console.log('🎯 RP Finances inicializado');
-    }
-
-    /**
-     * 🏁 Método principal de inicialização da aplicação
-     * Chama todos os métodos necessários para configurar a app
-     */
-    async init(): Promise<void> {
-        try {
-            console.log('🚀 Iniciando aplicação RP Finances...');
-            
-            // 1. Verificar autenticação do usuário
-            await this.checkAuthentication();
-            
-            // 2. Inicializar interface do usuário
-            this.initializeUI();
-            
-            // 3. Carregar dados do portfolio
-            await this.loadPortfolioData();
-            
-            // 4. Configurar atualizações em tempo real
-            this.setupRealTimeUpdates();
-            
-            console.log('✅ Aplicação inicializada com sucesso');
-            
-        } catch (error) {
-            console.error('❌ Erro ao inicializar aplicação:', error);
-            this.uiManager.showError('Erro ao carregar a aplicação. Tente novamente.');
-        }
-    }
-
-    /**
-     * 🔐 Verifica se o usuário está autenticado
-     * Se não estiver, redireciona para login
-     */
-    private async checkAuthentication(): Promise<void> {
-        console.log('🔐 Verificando autenticação...');
-        
-        try {
-            const user = await this.supabaseClient.getCurrentUser();
-            
-            if (!user) {
-                console.log('⚠️ Usuário não autenticado');
-                // Por enquanto, vamos permitir acesso sem autenticação
-                // Em produção, redirecionaria para login
-                return;
-            }
-            
-            console.log('✅ Usuário autenticado:', user.email);
-            
-        } catch (error) {
-            console.error('❌ Erro na verificação de autenticação:', error);
-            // Por enquanto, continua sem autenticação
-        }
-    }
-
-    /**
-     * 🎨 Inicializa a interface do usuário
-     * Configura eventos e componentes interativos
-     */
-    private initializeUI(): void {
-        console.log('🎨 Inicializando interface...');
-        
-        // Inicializar gerenciador de UI
-        this.uiManager.init();
-        
-        // Configurar eventos de botões
-        this.setupEventListeners();
-        
-        // Atualizar data/hora atual
-        this.updateCurrentTime();
-        
-        console.log('✅ Interface inicializada');
-    }
-
-    /**
-     * 🎯 Configura os event listeners da aplicação
-     * Gerencia cliques e interações do usuário
-     */
-    private setupEventListeners(): void {
-        // Botão de atualizar dados
-        const refreshButton = document.querySelector('[data-action="refresh"]');
-        if (refreshButton) {
-            refreshButton.addEventListener('click', () => {
-                console.log('🔄 Atualizando dados do portfolio...');
-                this.loadPortfolioData();
-            });
-        }
-
-        // Botões de navegação (serão expandidos no futuro)
-        const navButtons = document.querySelectorAll('nav button');
-        navButtons.forEach(button => {
-            button.addEventListener('click', (event) => {
-                const target = event.target as HTMLElement;
-                console.log('📍 Navegação:', target.textContent);
-                // Navegação será implementada posteriormente
-            });
-        });
-    }
-
-    /**
-     * 📊 Carrega todos os dados do portfolio do usuário
-     * Integra dados de múltiplas fontes (bancos, corretoras, etc.)
-     */
-    private async loadPortfolioData(): Promise<void> {
-        console.log('📊 Carregando dados do portfolio...');
-        
-        try {
-            // Mostrar indicador de carregamento
-            this.uiManager.showLoading();
-            
-            // Carregar dados do portfolio via PortfolioManager
-            this.portfolioData = await this.portfolioManager.getPortfolioData();
-            
-            // Atualizar interface com os dados
-            this.updatePortfolioUI();
-            
-            // Esconder indicador de carregamento
-            this.uiManager.hideLoading();
-            
-            console.log('✅ Dados do portfolio carregados:', this.portfolioData);
-            
-        } catch (error) {
-            console.error('❌ Erro ao carregar portfolio:', error);
-            this.uiManager.showError('Erro ao carregar dados do portfolio');
-            this.uiManager.hideLoading();
-        }
-    }
-
-    /**
-     * 🔄 Atualiza a interface com os dados do portfolio
-     * Preenche cards, tabelas e gráficos
-     */
-    private updatePortfolioUI(): void {
-        if (!this.portfolioData) return;
-
-        console.log('🔄 Atualizando interface do portfolio...');
-
-        // Atualizar cards de resumo
-        this.updateSummaryCards();
-        
-        // Atualizar lista de contas conectadas
-        this.updateConnectedAccounts();
-        
-        // Atualizar distribuição de ativos
-        this.updateAssetDistribution();
-    }
-
-    /**
-     * 💳 Atualiza os cards de resumo financeiro
-     */
-    private updateSummaryCards(): void {
-        if (!this.portfolioData) return;
-
-        // Patrimônio Total
-        const totalAssetsElement = document.getElementById('total-assets');
-        if (totalAssetsElement) {
-            totalAssetsElement.textContent = this.formatCurrency(this.portfolioData.totalAssets);
-        }
-
-        // Rentabilidade Mensal
-        const monthlyReturnElement = document.getElementById('monthly-return');
-        if (monthlyReturnElement) {
-            const returnText = this.formatPercentage(this.portfolioData.monthlyReturn);
-            monthlyReturnElement.textContent = returnText;
-            
-            // Cor baseada na performance
-            if (this.portfolioData.monthlyReturn >= 0) {
-                monthlyReturnElement.className = 'text-2xl font-bold text-green-600';
-            } else {
-                monthlyReturnElement.className = 'text-2xl font-bold text-red-600';
-            }
-        }
-
-        // Última Atualização
-        const lastUpdateElement = document.getElementById('last-update');
-        if (lastUpdateElement) {
-            lastUpdateElement.textContent = this.formatDate(this.portfolioData.lastUpdate);
-        }
-    }
-
-    /**
-     * 🏦 Atualiza a lista de contas conectadas
-     */
-    private updateConnectedAccounts(): void {
-        if (!this.portfolioData) return;
-
-        const accountsContainer = document.getElementById('connected-accounts');
-        if (!accountsContainer) return;
-
-        // Limpar conteúdo atual
-        accountsContainer.innerHTML = '';
-
-        // Renderizar cada conta conectada
-        this.portfolioData.connectedAccounts.forEach(account => {
-            const accountElement = this.createAccountElement(account);
-            accountsContainer.appendChild(accountElement);
-        });
-    }
-
-    /**
-     * 🏦 Cria elemento HTML para uma conta conectada
-     */
-    private createAccountElement(account: ConnectedAccount): HTMLElement {
-        const div = document.createElement('div');
-        div.className = 'flex items-center justify-between p-4 border border-gray-200 rounded-lg';
-        
-        div.innerHTML = `
-            <div class="flex items-center">
-                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
-                    <span class="text-blue-600 font-semibold">${account.institutionName.charAt(0)}</span>
-                </div>
-                <div>
-                    <h4 class="font-medium text-gray-900">${account.institutionName}</h4>
-                    <p class="text-sm text-gray-600">${account.accountType}</p>
-                </div>
-            </div>
-            <div class="text-right">
-                <p class="font-semibold text-gray-900">${this.formatCurrency(account.balance)}</p>
-                <p class="text-sm text-gray-600">Sincronizado: ${this.formatDate(account.lastSync)}</p>
-            </div>
-        `;
-        
-        return div;
-    }
-
-    /**
-     * 📈 Atualiza a seção de distribuição de ativos
-     */
-    private updateAssetDistribution(): void {
-        if (!this.portfolioData) return;
-
-        const distributionContainer = document.getElementById('asset-distribution');
-        if (!distributionContainer) return;
-
-        // Limpar conteúdo atual
-        distributionContainer.innerHTML = '';
-
-        // Renderizar distribuição de ativos
-        this.portfolioData.assetDistribution.forEach(asset => {
-            const assetElement = this.createAssetDistributionElement(asset);
-            distributionContainer.appendChild(assetElement);
-        });
-    }
-
-    /**
-     * 📊 Cria elemento HTML para distribuição de ativo
-     */
-    private createAssetDistributionElement(asset: AssetDistribution): HTMLElement {
-        const div = document.createElement('div');
-        div.className = 'flex items-center justify-between p-3 border-b border-gray-100 last:border-b-0';
-        
-        div.innerHTML = `
-            <div class="flex items-center">
-                <div class="w-4 h-4 rounded-full mr-3" style="background-color: ${asset.color}"></div>
-                <span class="font-medium text-gray-900">${asset.category}</span>
-            </div>
-            <div class="text-right">
-                <p class="font-semibold text-gray-900">${this.formatCurrency(asset.value)}</p>
-                <p class="text-sm text-gray-600">${this.formatPercentage(asset.percentage)}</p>
-            </div>
-        `;
-        
-        return div;
-    }
-
-    /**
-     * ⚡ Configura atualizações em tempo real
-     * Escuta mudanças no Supabase e atualiza a UI
-     */
-    private setupRealTimeUpdates(): void {
-        console.log('⚡ Configurando atualizações em tempo real...');
-        
-        // Configurar WebSocket com Supabase para updates em tempo real
-        this.supabaseClient.subscribeToChanges((data: any) => {
-            console.log('🔄 Dados atualizados em tempo real:', data);
-            this.loadPortfolioData();
-        });
-    }
-
-    /**
-     * 🕒 Atualiza o horário atual na interface
-     */
-    private updateCurrentTime(): void {
-        // Atualizar a cada minuto
-        setTimeout(() => this.updateCurrentTime(), 60000);
-    }
-
-    /**
-     * 💰 Formata valores monetários para exibição
-     */
-    private formatCurrency(value: number): string {
-        return new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL'
-        }).format(value);
-    }
-
-    /**
-     * 📈 Formata percentuais para exibição
-     */
-    private formatPercentage(value: number): string {
-        const sign = value >= 0 ? '+' : '';
-        return `${sign}${value.toFixed(2)}%`;
-    }
-
-    /**
-     * 📅 Formata datas para exibição
-     */
-    private formatDate(dateString: string): string {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    }
-}
+  // IDs de exemplo para teste (em produção, vir do Supabase)
+  connectedItems: [] as string[],
+};
 
 /**
- * 🚀 Inicialização da aplicação quando DOM estiver pronto
- * Ponto de entrada principal da aplicação
+ * Classe principal da aplicação
  */
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🌟 DOM carregado, inicializando RP Finances...');
+class PortfolioApp {
+  private collector: InvestmentCollector;
+  private currentInvestments: Investment[] = [];
+
+  constructor() {
+    this.collector = new InvestmentCollector(APP_CONFIG.pluggy);
+  }
+
+  /**
+   * Inicializa a aplicação
+   */
+  async init(): Promise<void> {
+    console.log('🚀 Inicializando RP-Finances...');
+
+    try {
+      // Setup dos event listeners
+      this.setupEventListeners();
+
+      // Atualiza UI inicial
+      this.updateLastUpdateTime();
+
+      // Mostra mensagem de boas-vindas
+      this.showWelcomeMessage();
+
+      console.log('✅ RP-Finances inicializado com sucesso');
+
+    } catch (error) {
+      console.error('❌ Erro ao inicializar aplicação:', error);
+      this.showError('Erro ao inicializar aplicação');
+    }
+  }
+
+  /**
+   * Configura os event listeners da interface
+   */
+  private setupEventListeners(): void {
+    // Botões de conectar contas
+    const connectBtn = document.getElementById('connectBtn');
+    const connectBtn2 = document.getElementById('connectBtn2');
+
+    if (connectBtn) {
+      connectBtn.addEventListener('click', () => this.handleConnectAccounts());
+    }
+    if (connectBtn2) {
+      connectBtn2.addEventListener('click', () => this.handleConnectAccounts());
+    }
+  }
+
+  /**
+   * FUNÇÃO PRINCIPAL: Coleta todos os investimentos
+   */
+  async collectInvestments(): Promise<void> {
+    if (APP_CONFIG.connectedItems.length === 0) {
+      this.showError('Nenhuma conta conectada. Conecte suas contas primeiro.');
+      return;
+    }
+
+    try {
+      // Mostra status de carregamento
+      this.showStatus('Coletando seus investimentos...', true);
+
+      console.log('🎯 Iniciando coleta de investimentos...');
+
+      // Coleta investimentos usando o InvestmentCollector
+      this.currentInvestments = await this.collector.collectAllInvestments(APP_CONFIG.connectedItems);
+
+      // Gera resumo
+      const summary = this.collector.generateSummary(this.currentInvestments);
+
+      // Atualiza interface
+      this.updateUI(summary);
+
+      // Remove status de carregamento
+      this.hideStatus();
+
+      console.log('🎉 Coleta concluída com sucesso!');
+
+    } catch (error) {
+      console.error('❌ Erro na coleta:', error);
+      this.hideStatus();
+      this.showError('Erro ao coletar investimentos: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
+    }
+  }
+
+  /**
+   * Atualiza a interface com os dados coletados
+   */
+  private updateUI(summary: PortfolioSummary): void {
+    // Atualiza cards de resumo
+    this.updateElement('totalValue', `R$ ${summary.totalBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
+    this.updateElement('totalCount', summary.totalInvestments.toString());
+    this.updateElement('totalProfit', `R$ ${summary.totalProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
+    this.updateElement('profitPercent', `${summary.profitPercentage.toFixed(2)}%`);
+
+    // Atualiza lista de investimentos
+    this.updateInvestmentsList(summary.investments);
+
+    // Atualiza timestamp
+    this.updateLastUpdateTime();
+  }
+
+  /**
+   * Atualiza a lista de investimentos na interface
+   */
+  private updateInvestmentsList(investments: Investment[]): void {
+    const container = document.getElementById('investmentsList');
+    if (!container) return;
+
+    if (investments.length === 0) {
+      container.innerHTML = `
+        <div class="text-center text-gray-500 py-8">
+          <p>Nenhum investimento encontrado</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = investments.map((investment) => {
+      const profit = investment.amountProfit || 0;
+      const profitClass = profit >= 0 ? 'text-green-600' : 'text-red-600';
+      const profitIcon = profit >= 0 ? '📈' : '📉';
+
+      return `
+        <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+          <div class="flex justify-between items-start">
+            <div class="flex-1">
+              <h3 class="font-semibold text-gray-900">${investment.name}</h3>
+              <p class="text-sm text-gray-500">${investment.type} • ${investment.subtype || 'N/A'}</p>
+              <p class="text-sm text-gray-500">${investment.institution?.name || 'N/A'}</p>
+            </div>
+            <div class="text-right">
+              <p class="font-semibold text-gray-900">R$ ${investment.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+              <p class="text-sm ${profitClass}">${profitIcon} R$ ${profit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  /**
+   * Manipula o clique no botão de conectar contas
+   */
+  /**
+   * Manipula o clique no botão de conectar contas
+   */
+  private async handleConnectAccounts(): Promise<void> {
+    console.log('🔗 Iniciando Pluggy Connect Widget...');
     
     try {
-        // Criar instância da aplicação
-        const app = new RPFinancesApp();
-        
-        // Inicializar aplicação
-        await app.init();
-        
+      this.showStatus('Obtendo token de conexão...', true);
+      
+      // Obtém connect token da API Pluggy
+      const connectToken = await this.getConnectToken();
+      
+      this.showStatus('', false);
+      
+      // Configura e abre o Pluggy Connect Widget oficial
+      const pluggyConnect = new (window as any).PluggyConnect({
+        connectToken: connectToken,
+        includeSandbox: true, // Para testes
+        onSuccess: (itemData: any) => {
+          console.log('✅ Conta conectada com sucesso:', itemData);
+          this.onAccountConnected(itemData);
+        },
+        onError: (error: any) => {
+          console.error('❌ Erro ao conectar conta:', error);
+          this.showError('Erro ao conectar conta: ' + (error.message || 'Erro desconhecido'));
+        },
+        onOpen: () => {
+          console.log('📱 Widget Pluggy aberto');
+        },
+        onClose: () => {
+          console.log('📱 Widget Pluggy fechado');
+        }
+      });
+
+      // Abre o widget
+      pluggyConnect.init();
+      
     } catch (error) {
-        console.error('💥 Erro crítico na inicialização:', error);
-        
-        // Mostrar mensagem de erro na tela
-        document.body.innerHTML = `
-            <div class="min-h-screen flex items-center justify-center bg-gray-50">
-                <div class="max-w-md w-full bg-white rounded-lg shadow-lg p-6 text-center">
-                    <div class="text-red-500 text-5xl mb-4">⚠️</div>
-                    <h1 class="text-xl font-bold text-gray-900 mb-2">Erro na Aplicação</h1>
-                    <p class="text-gray-600 mb-4">Não foi possível carregar o RP Finances.</p>
-                    <button onclick="location.reload()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-                        Tentar Novamente
-                    </button>
-                </div>
-            </div>
-        `;
+      console.error('❌ Erro ao inicializar Pluggy Connect:', error);
+      this.showStatus('', false);
+      this.showError('Erro ao inicializar conexão de contas');
     }
+  }
+
+  /**
+   * Obtém connect token da API Pluggy
+   */
+  private async getConnectToken(): Promise<string> {
+    try {
+      console.log('🔑 Obtendo connect token...');
+      
+      const response = await fetch(`${APP_CONFIG.pluggy.baseUrl}/auth`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          clientId: APP_CONFIG.pluggy.clientId,
+          clientSecret: APP_CONFIG.pluggy.clientSecret
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro na autenticação: ${response.status}`);
+      }
+
+      const authData = await response.json();
+      const apiKey = authData.apiKey || authData.accessToken;
+      
+      // Agora cria o connect token
+      const connectResponse = await fetch(`${APP_CONFIG.pluggy.baseUrl}/connect_token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-KEY': apiKey
+        },
+        body: JSON.stringify({
+          options: {
+            clientUserId: 'rp-finances-user'
+          }
+        })
+      });
+
+      if (!connectResponse.ok) {
+        throw new Error(`Erro ao criar connect token: ${connectResponse.status}`);
+      }
+
+      const connectData = await connectResponse.json();
+      console.log('✅ Connect token obtido com sucesso');
+      
+      return connectData.accessToken;
+      
+    } catch (error) {
+      console.error('❌ Erro ao obter connect token:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtém o token de conexão da API Pluggy
+   */
+  /*
+  // @ts-ignore - Função será removida
+  private async getConnectToken(): Promise<string> {
+    try {
+      console.log('� Obtendo token de conexão...');
+      
+      const response = await fetch(`${APP_CONFIG.pluggy.baseUrl}/auth`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          clientId: APP_CONFIG.pluggy.clientId,
+          clientSecret: APP_CONFIG.pluggy.clientSecret
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro na autenticação: ${response.status}`);
+      }
+
+      const authData = await response.json();
+      console.log('✅ Token obtido com sucesso');
+      
+      return authData.apiKey;
+      
+    } catch (error) {
+      console.error('❌ Erro ao obter token:', error);
+      throw error;
+    }
+  }
+  */
+
+  /**
+   * Callback executado quando uma conta é conectada
+   */
+  private async onAccountConnected(itemData: any): Promise<void> {
+    console.log('🎉 Nova conta conectada:', itemData);
+    
+    try {
+      // Adiciona o item conectado à configuração
+      APP_CONFIG.connectedItems.push(itemData.item.id);
+      
+      // Mostra sucesso
+      this.showSuccess(`Conta ${itemData.item.connector.name} conectada com sucesso!`);
+      
+      // Inicia coleta automática dos investimentos
+      await this.collectInvestments();
+      
+    } catch (error) {
+      console.error('❌ Erro após conectar conta:', error);
+      this.showError('Conta conectada, mas erro ao coletar investimentos');
+    }
+  }
+
+  /**
+   * Utilitários da interface
+   */
+  private updateElement(id: string, text: string): void {
+    const element = document.getElementById(id);
+    if (element) {
+      element.textContent = text;
+    }
+  }
+
+  private showStatus(message: string, show: boolean): void {
+    const statusCard = document.getElementById('statusCard');
+    const statusText = document.getElementById('statusText');
+    
+    if (statusCard && statusText) {
+      statusText.textContent = message;
+      statusCard.classList.toggle('hidden', !show);
+    }
+  }
+
+  private hideStatus(): void {
+    this.showStatus('', false);
+  }
+
+  private showError(message: string): void {
+    console.error('❌', message);
+    alert('Erro: ' + message);
+  }
+
+  private showSuccess(message: string): void {
+    // Remove mensagens anteriores
+    const existingSuccess = document.querySelector('.success-message');
+    if (existingSuccess) {
+      existingSuccess.remove();
+    }
+
+    // Cria elemento de sucesso
+    const successDiv = document.createElement('div');
+    successDiv.className = 'success-message fixed top-4 right-4 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg shadow-lg z-50';
+    successDiv.innerHTML = `
+      <div class="flex items-center">
+        <span class="text-green-600 mr-2">✅</span>
+        <span>${message}</span>
+        <button class="ml-4 text-green-600 hover:text-green-800" onclick="this.parentElement.parentElement.remove()">×</button>
+      </div>
+    `;
+
+    document.body.appendChild(successDiv);
+
+    // Remove automaticamente após 5 segundos
+    setTimeout(() => {
+      if (successDiv.parentNode) {
+        successDiv.remove();
+      }
+    }, 5000);
+  }
+
+  private updateLastUpdateTime(): void {
+    const element = document.getElementById('lastUpdate');
+    if (element) {
+      element.textContent = `Atualizado em ${new Date().toLocaleTimeString('pt-BR')}`;
+    }
+  }
+
+  private showWelcomeMessage(): void {
+    console.log('👋 Bem-vindo ao RP-Finances!');
+    console.log('📋 Para começar:');
+    console.log('1. Configure suas credenciais Pluggy em APP_CONFIG');
+    console.log('2. Conecte suas contas bancárias');
+    console.log('3. Os investimentos serão coletados automaticamente');
+  }
+}
+
+/**
+ * Inicialização da aplicação quando o DOM estiver pronto
+ */
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const app = new PortfolioApp();
+    await app.init();
+
+    // Expõe funções globais para debug
+    (window as any).app = app;
+    (window as any).collectInvestments = () => app.collectInvestments();
+
+    console.log('🎯 Digite collectInvestments() no console para testar a coleta');
+
+  } catch (error) {
+    console.error('❌ Erro fatal na inicialização:', error);
+  }
 });

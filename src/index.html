@@ -12,12 +12,129 @@
     <!-- Importação do CSS base com Tailwind -->
     <link rel="stylesheet" href="./styles/main.css">
     
+    <!-- Pluggy Connect Widget oficial -->
+    <script src="https://cdn.pluggy.ai/pluggy-connect/v2.8.2/pluggy-connect.js"></script>
+    
     <!-- Favicon (será adicionado depois) -->
     <link rel="icon" type="image/svg+xml" href="./assets/favicon.ico">
 </head>
 <body class="bg-gray-50 min-h-screen">
     <!-- Container principal da aplicação -->
     <div id="app" class="min-h-screen">
+        
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b border-gray-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center py-6">
+                    <div class="flex items-center">
+                        <h1 class="text-2xl font-bold text-gray-900">RP Finances</h1>
+                        <span class="ml-2 text-sm text-gray-500">Portfolio</span>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span id="lastUpdate" class="text-sm text-gray-500">Carregando...</span>
+                        <button id="connectBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+                            Conectar Contas
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            
+            <!-- Status da coleta -->
+            <div id="statusCard" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 hidden">
+                <div class="flex items-center">
+                    <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                    <span class="text-blue-800" id="statusText">Coletando investimentos...</span>
+                </div>
+            </div>
+
+            <!-- Resumo do Portfolio -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                <span class="text-green-600 font-semibold">💰</span>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Valor Total</p>
+                            <p class="text-2xl font-semibold text-gray-900" id="totalValue">R$ --</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                <span class="text-blue-600 font-semibold">📊</span>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Investimentos</p>
+                            <p class="text-2xl font-semibold text-gray-900" id="totalCount">--</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                                <span class="text-purple-600 font-semibold">📈</span>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Resultado</p>
+                            <p class="text-2xl font-semibold text-gray-900" id="totalProfit">R$ --</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                                <span class="text-yellow-600 font-semibold">%</span>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Rentabilidade</p>
+                            <p class="text-2xl font-semibold text-gray-900" id="profitPercent">--%</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de Investimentos -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-xl font-semibold text-gray-900">Seus Investimentos</h2>
+                </div>
+                <div class="p-6">
+                    <div id="investmentsList" class="space-y-4">
+                        <!-- Será preenchido dinamicamente -->
+                        <div class="text-center text-gray-500 py-8">
+                            <p>Conecte suas contas para ver seus investimentos</p>
+                            <button id="connectBtn2" class="mt-4 bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors">
+                                Conectar Contas
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Script principal -->
+    <script type="module" src="./ts/main.ts"></script>
+</body>
+</html>
         
         <!-- Header da aplicação -->
         <header class="bg-white shadow-sm border-b border-gray-200">

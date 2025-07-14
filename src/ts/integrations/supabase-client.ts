@@ -163,7 +163,7 @@ export class SupabaseClient {
         try {
             console.log('👥 Registrando novo usuário:', email);
             
-            const { data, error } = await this.client.auth.signUp({
+            const { error } = await this.client.auth.signUp({
                 email,
                 password,
                 options: {

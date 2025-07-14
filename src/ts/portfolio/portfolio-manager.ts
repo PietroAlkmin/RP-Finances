@@ -40,13 +40,13 @@ interface AssetDistribution {
  * Centraliza toda a lógica de negócio relacionada aos investimentos
  */
 export class PortfolioManager {
-    private supabaseClient: SupabaseClient;
+    // private _supabaseClient: SupabaseClient; // Para uso futuro
     private portfolioCache: PortfolioData | null = null;
     private lastCacheUpdate: number = 0;
     private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
-    constructor(supabaseClient: SupabaseClient) {
-        this.supabaseClient = supabaseClient;
+    constructor(_supabaseClient: SupabaseClient) {
+        // this._supabaseClient = supabaseClient; // Para uso futuro
         console.log('📊 PortfolioManager inicializado');
     }
 
@@ -271,17 +271,17 @@ export class PortfolioManager {
     /**
      * 📈 Calcula a rentabilidade mensal do portfolio
      */
-    private async calculateMonthlyReturn(accounts: ConnectedAccount[]): Promise<number> {
+    private calculateMonthlyReturn(_accounts: ConnectedAccount[]): Promise<number> {
         try {
             // Aqui seria calculado baseado em dados históricos
             // Por enquanto, retornamos um valor simulado
             const mockReturn = 2.35; // 2.35% de rentabilidade
             console.log(`📈 Rentabilidade mensal: ${mockReturn}%`);
-            return mockReturn;
+            return Promise.resolve(mockReturn);
 
         } catch (error) {
             console.error('❌ Erro ao calcular rentabilidade:', error);
-            return 0;
+            return Promise.resolve(0);
         }
     }
 
