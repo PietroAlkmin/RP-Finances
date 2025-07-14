@@ -45,6 +45,10 @@ class PortfolioApp {
       // Mostra mensagem de boas-vindas
       this.showWelcomeMessage();
 
+      // Adiciona dados de exemplo para demonstração da UI
+      // TODO: Remover em produção
+      this.addSampleData();
+
       console.log('✅ RP-Finances inicializado com sucesso');
 
     } catch (error) {
@@ -67,6 +71,14 @@ class PortfolioApp {
     if (connectBtn2) {
       connectBtn2.addEventListener('click', () => this.handleConnectAccounts());
     }
+
+    // Event listener dinâmico para botões criados na renderização
+    document.addEventListener('click', (event) => {
+      const target = event.target as HTMLElement;
+      if (target && target.classList.contains('btn-premium')) {
+        this.handleConnectAccounts();
+      }
+    });
   }
 
   /**
@@ -131,30 +143,135 @@ class PortfolioApp {
 
     if (investments.length === 0) {
       container.innerHTML = `
-        <div class="text-center text-gray-500 py-8">
-          <p>Nenhum investimento encontrado</p>
+        <div class="text-center py-16">
+          <div class="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-100 rounded-full flex items-center justify-center shadow-lg">
+            <svg class="w-16 h-16 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+          </div>
+          <h3 class="text-2xl font-bold text-slate-900 mb-3">Conecte suas contas</h3>
+          <p class="text-slate-600 mb-8 max-w-lg mx-auto text-lg leading-relaxed">
+            Visualize todos os seus investimentos em um só lugar. Conecte suas contas bancárias de forma segura para começar.
+          </p>
+          <button class="btn-premium px-8 py-4">
+            <span class="flex items-center space-x-3">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+              </svg>
+              <span>Conectar Contas Agora</span>
+            </span>
+          </button>
         </div>
       `;
       return;
     }
 
-    container.innerHTML = investments.map((investment) => {
-      const profit = investment.amountProfit || 0;
-      const profitClass = profit >= 0 ? 'text-green-600' : 'text-red-600';
-      const profitIcon = profit >= 0 ? '📈' : '📉';
+    // Agrupa investimentos por instituição
+    const byInstitution = this.groupInvestmentsByInstitution(investments);
+
+    container.innerHTML = Object.entries(byInstitution).map(([institutionName, instInvestments]) => {
+      const institutionTotal = instInvestments.reduce((sum, inv) => sum + inv.balance, 0);
+      const institutionCount = instInvestments.length;
 
       return `
-        <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-          <div class="flex justify-between items-start">
-            <div class="flex-1">
-              <h3 class="font-semibold text-gray-900">${investment.name}</h3>
-              <p class="text-sm text-gray-500">${investment.type} • ${investment.subtype || 'N/A'}</p>
-              <p class="text-sm text-gray-500">${investment.institution?.name || 'N/A'}</p>
+        <div class="institution-group mb-8 animate-fade-in">
+          <!-- Header da Instituição -->
+          <div class="bg-gradient-to-r from-slate-50 to-blue-50 rounded-t-xl px-6 py-4 border-b border-slate-200">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="font-bold text-slate-900 text-lg">${institutionName}</h3>
+                  <span class="text-sm text-slate-600">${institutionCount} investimentos</span>
+                </div>
+              </div>
+              <div class="text-right">
+                <p class="text-2xl font-bold text-slate-900">R$ ${institutionTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                <span class="text-sm text-slate-600">Total na instituição</span>
+              </div>
             </div>
-            <div class="text-right">
-              <p class="font-semibold text-gray-900">R$ ${investment.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-              <p class="text-sm ${profitClass}">${profitIcon} R$ ${profit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-            </div>
+          </div>
+
+          <!-- Lista de Investimentos da Instituição -->
+          <div class="bg-white border-x border-b border-slate-200 rounded-b-xl">
+            ${instInvestments.map((investment, index) => {
+              const profit = investment.amountProfit || 0;
+              const originalAmount = investment.amountOriginal || investment.amount || investment.balance;
+              const profitPercent = originalAmount > 0 ? ((profit / originalAmount) * 100) : 0;
+              
+              const isPositive = profit > 0;
+              const isNegative = profit < 0;
+              
+              const profitClass = isPositive ? 'text-emerald-600' : isNegative ? 'text-red-600' : 'text-slate-600';
+              const profitBgClass = isPositive ? 'bg-emerald-50 border-emerald-200' : isNegative ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-200';
+              const profitIcon = isPositive ? '↗️' : isNegative ? '↘️' : '➡️';
+
+              const typeIcon = this.getInvestmentTypeIcon(investment.type);
+              const borderClass = index === instInvestments.length - 1 ? '' : 'border-b border-slate-100';
+
+              return `
+                <div class="group p-6 ${borderClass} hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50 transition-all duration-300">
+                  <div class="flex items-center justify-between">
+                    <!-- Informações do Investimento -->
+                    <div class="flex items-center space-x-4 flex-1">
+                      <div class="w-16 h-16 bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shadow-sm">
+                        <span class="text-2xl">${typeIcon}</span>
+                      </div>
+                      <div class="flex-1">
+                        <h4 class="font-semibold text-slate-900 text-lg mb-1 group-hover:text-blue-600 transition-colors duration-200">
+                          ${investment.name}
+                        </h4>
+                        <p class="text-slate-600 text-sm mb-1">
+                          ${investment.type}${investment.subtype ? ` • ${investment.subtype}` : ''}
+                        </p>
+                        ${investment.code ? `<p class="text-slate-500 text-xs font-mono">${investment.code}</p>` : ''}
+                      </div>
+                    </div>
+
+                    <!-- Métricas do Investimento -->
+                    <div class="flex items-center space-x-6">
+                      <!-- Saldo Atual -->
+                      <div class="text-right">
+                        <p class="text-2xl font-bold text-slate-900 group-hover:scale-105 transition-transform duration-200">
+                          R$ ${investment.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                        <p class="text-sm text-slate-600">Saldo atual</p>
+                      </div>
+
+                      <!-- Resultado -->
+                      ${profit !== 0 ? `
+                        <div class="text-right">
+                          <div class="inline-flex items-center space-x-2 px-3 py-2 rounded-lg border ${profitBgClass}">
+                            <span class="text-lg">${profitIcon}</span>
+                            <div class="text-right">
+                              <p class="font-semibold ${profitClass}">
+                                R$ ${Math.abs(profit).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </p>
+                              <p class="text-xs ${profitClass}">
+                                ${profitPercent > 0 ? '+' : ''}${profitPercent.toFixed(2)}%
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ` : ''}
+
+                      <!-- Botão de Ações -->
+                      <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <button class="w-10 h-10 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center justify-center transition-colors duration-200">
+                          <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
           </div>
         </div>
       `;
@@ -390,6 +507,214 @@ class PortfolioApp {
     console.log('1. Configure suas credenciais Pluggy em APP_CONFIG');
     console.log('2. Conecte suas contas bancárias');
     console.log('3. Os investimentos serão coletados automaticamente');
+  }
+
+  /**
+   * Agrupa investimentos por instituição
+   */
+  private groupInvestmentsByInstitution(investments: Investment[]): Record<string, Investment[]> {
+    return investments.reduce((groups: Record<string, Investment[]>, investment) => {
+      const institutionName = investment.institution?.name || 'Instituição não identificada';
+      if (!groups[institutionName]) {
+        groups[institutionName] = [];
+      }
+      groups[institutionName].push(investment);
+      return groups;
+    }, {});
+  }
+
+  /**
+   * Retorna o ícone apropriado para o tipo de investimento
+   */
+  private getInvestmentTypeIcon(type: string): string {
+    const iconMap: Record<string, string> = {
+      'BANK_ACCOUNT': '🏦',
+      'CREDIT_CARD': '💳',
+      'INVESTMENT': '📈',
+      'LOAN': '💰',
+      'FINANCING': '🏠',
+      'CDB': '💎',
+      'LCI': '🏛️',
+      'LCA': '🌾',
+      'FUND': '📊',
+      'STOCK': '📈',
+      'FIXED_INCOME': '💰',
+      'PENSION': '🎯',
+      'SAVINGS': '🐷',
+      'COE': '⚖️',
+      'TESOURO_DIRETO': '🏛️'
+    };
+    
+    return iconMap[type] || iconMap[type.toUpperCase()] || '💼';
+  }
+
+  /**
+   * Dados de exemplo para demonstração da UI
+   */
+  private addSampleData(): void {
+    // Simula dados de investimentos para demonstração
+    const sampleInvestments: Investment[] = [
+      {
+        id: '1',
+        name: 'CDB Banco ABC',
+        code: 'CDB001',
+        type: 'FIXED_INCOME',
+        subtype: 'CDB',
+        balance: 15750.00,
+        currencyCode: 'BRL',
+        value: 100.50,
+        quantity: 156.72,
+        amount: 15000.00,
+        amountProfit: 750.00,
+        amountOriginal: 15000.00,
+        date: '2024-01-15',
+        dueDate: '2025-01-15',
+        status: 'ACTIVE',
+        institution: {
+          name: 'Banco ABC',
+          number: '001'
+        },
+        itemId: 'item1'
+      },
+      {
+        id: '2',
+        name: 'Tesouro IPCA+ 2035',
+        code: 'NTNB350035',
+        type: 'FIXED_INCOME',
+        subtype: 'TREASURY',
+        balance: 5420.30,
+        currencyCode: 'BRL',
+        value: 2710.15,
+        quantity: 2,
+        amount: 5200.00,
+        amountProfit: 220.30,
+        amountOriginal: 5200.00,
+        date: '2024-02-01',
+        dueDate: '2035-05-15',
+        status: 'ACTIVE',
+        institution: {
+          name: 'Tesouro Nacional',
+          number: '000'
+        },
+        itemId: 'item2'
+      },
+      {
+        id: '3',
+        name: 'Fundo Multimercado XYZ',
+        code: 'FUND001',
+        type: 'MUTUAL_FUND',
+        subtype: 'MULTIMARKET_FUND',
+        balance: 8935.67,
+        currencyCode: 'BRL',
+        value: 2.1589,
+        quantity: 4140.23,
+        amount: 8500.00,
+        amountProfit: 435.67,
+        amountOriginal: 8500.00,
+        date: '2024-01-20',
+        status: 'ACTIVE',
+        institution: {
+          name: 'Corretora XYZ',
+          number: '123'
+        },
+        itemId: 'item3'
+      },
+      {
+        id: '4',
+        name: 'LCI Banco ABC',
+        code: 'LCI002',
+        type: 'FIXED_INCOME',
+        subtype: 'LCI',
+        balance: 12100.00,
+        currencyCode: 'BRL',
+        value: 100.83,
+        quantity: 120.00,
+        amount: 12000.00,
+        amountProfit: 100.00,
+        amountOriginal: 12000.00,
+        date: '2024-03-01',
+        dueDate: '2026-03-01',
+        status: 'ACTIVE',
+        institution: {
+          name: 'Banco ABC',
+          number: '001'
+        },
+        itemId: 'item1'
+      },
+      {
+        id: '5',
+        name: 'Ações PETR4',
+        code: 'PETR4',
+        type: 'EQUITY',
+        subtype: 'STOCK',
+        balance: 3456.00,
+        currencyCode: 'BRL',
+        value: 28.80,
+        quantity: 120,
+        amount: 3600.00,
+        amountProfit: -144.00,
+        amountOriginal: 3600.00,
+        date: '2024-02-15',
+        status: 'ACTIVE',
+        institution: {
+          name: 'Corretora XYZ',
+          number: '123'
+        },
+        itemId: 'item3'
+      }
+    ];
+
+    // Atualiza a interface com os dados de exemplo
+    const totalBalance = sampleInvestments.reduce((sum, inv) => sum + inv.balance, 0);
+    const totalProfit = sampleInvestments.reduce((sum, inv) => sum + (inv.amountProfit || 0), 0);
+    const totalOriginal = sampleInvestments.reduce((sum, inv) => sum + (inv.amountOriginal || inv.amount), 0);
+    
+    const summary: PortfolioSummary = {
+      totalBalance: totalBalance,
+      totalProfit: totalProfit,
+      profitPercentage: totalOriginal > 0 ? (totalProfit / totalOriginal) * 100 : 0,
+      totalInvestments: sampleInvestments.length,
+      investments: sampleInvestments,
+      lastUpdated: new Date().toISOString(),
+      byType: {
+        FIXED_INCOME: {
+          count: 3,
+          balance: 33270.30,
+          percentage: 75.2
+        },
+        EQUITY: {
+          count: 1,
+          balance: 3456.00,
+          percentage: 7.8
+        },
+        MUTUAL_FUND: {
+          count: 1,
+          balance: 8935.67,
+          percentage: 17.0
+        }
+      },
+      accounts: []
+    };
+
+    this.updatePortfolioSummary(summary);
+    this.updateInvestmentsList(sampleInvestments);
+  }
+
+  /**
+   * Atualiza o resumo do portfólio na interface
+   */
+  private updatePortfolioSummary(summary: PortfolioSummary): void {
+    // Atualiza informações gerais
+    this.updateElement('totalValue', `R$ ${summary.totalBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
+    this.updateElement('totalProfit', `R$ ${summary.totalProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
+    this.updateElement('totalCount', summary.totalInvestments.toString());
+
+    // Atualiza porcentagem de lucro
+    const profitPercentage = (summary.totalProfit / summary.totalBalance) * 100;
+    this.updateElement('profitPercent', `${profitPercentage.toFixed(2)}%`);
+
+    // Atualiza timestamp
+    this.updateLastUpdateTime();
   }
 }
 

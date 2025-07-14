@@ -33,6 +33,10 @@
   /* Sombras para cards */
   --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  
+  /* Animações personalizadas */
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 /* ===== RESET E BASE STYLES ===== */
@@ -44,12 +48,12 @@
   }
   
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    @apply bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 text-gray-900 antialiased;
     font-feature-settings: 'cv11', 'ss01';
     font-variation-settings: 'opsz' 32;
   }
   
-  /* Títulos com espaçamento consistente */
+  /* Tipografia melhorada */
   h1, h2, h3, h4, h5, h6 {
     @apply font-semibold tracking-tight;
   }
@@ -58,10 +62,55 @@
   h2 { @apply text-2xl lg:text-3xl; }
   h3 { @apply text-xl lg:text-2xl; }
   h4 { @apply text-lg lg:text-xl; }
+  
+  /* Links com hover suave */
+  a {
+    @apply transition-colors duration-200;
+  }
 }
 
-/* ===== COMPONENTES REUTILIZÁVEIS ===== */
+/* ===== COMPONENTES CUSTOMIZADOS ===== */
 @layer components {
+  /* Classe para fonte Inter */
+  .font-inter {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  /* Cards com glass effect */
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-sm border border-white/50 shadow-xl;
+  }
+  
+  /* Botões premium com gradiente */
+  .btn-premium {
+    @apply bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white font-semibold rounded-xl shadow-xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:-translate-y-1;
+  }
+  
+  /* Cards de métricas com hover elegante */
+  .metric-card {
+    @apply group relative overflow-hidden rounded-2xl shadow-xl transition-all duration-500 transform hover:-translate-y-2 hover:rotate-1;
+  }
+  
+  .metric-card::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500;
+  }
+  
+  /* Ícones com animação hover */
+  .icon-hover {
+    @apply transition-transform duration-300 group-hover:scale-110;
+  }
+  
+  /* Texto com gradiente animado */
+  .text-gradient {
+    @apply bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent;
+  }
+  
+  /* Container com blur backdrop */
+  .backdrop-container {
+    @apply bg-white/80 backdrop-blur-sm border border-white/50;
+  }
+  
   /* Card base para seções */
   .card {
     @apply bg-white rounded-xl border border-gray-200 shadow-sm;
@@ -81,9 +130,9 @@
   
   /* Botão primário */
   .btn-primary {
-    @apply bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg;
+    @apply bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg;
     @apply transition-colors duration-200 shadow-sm hover:shadow-md;
-    @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+    @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
   }
   
   /* Botão secundário */
@@ -96,23 +145,23 @@
   /* Input de formulário */
   .input-field {
     @apply w-full px-3 py-2 border border-gray-300 rounded-lg;
-    @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+    @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
     @apply transition-colors duration-200;
   }
   
   /* Texto para valores monetários - positivos (ganho) */
   .value-positive {
-    @apply text-finance-gain font-semibold;
+    @apply text-green-600 font-semibold;
   }
   
   /* Texto para valores monetários - negativos (perda) */
   .value-negative {
-    @apply text-finance-loss font-semibold;
+    @apply text-red-600 font-semibold;
   }
   
   /* Texto para valores monetários - neutros */
   .value-neutral {
-    @apply text-finance-neutral font-semibold;
+    @apply text-gray-600 font-semibold;
   }
   
   /* Badge para status */
@@ -192,7 +241,7 @@
   }
 }
 
-/* ===== KEYFRAMES PARA ANIMAÇÕES ===== */
+/* ===== ANIMAÇÕES ===== */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -213,25 +262,53 @@
   }
 }
 
-/* ===== RESPONSIVIDADE ESPECÍFICA ===== */
+/* ===== RESPONSIVE BREAKPOINTS ===== */
 @media (max-width: 768px) {
-  .card-padded {
-    @apply p-4;
-  }
-  
-  /* Ajustes para mobile */
-  .mobile-stack {
-    @apply flex-col space-y-3;
+  .metric-card {
+    @apply hover:rotate-0;
   }
 }
 
-/* ===== IMPRESSÃO ===== */
+/* ===== ANIMAÇÕES ===== */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== RESPONSIVE BREAKPOINTS ===== */
+@media (max-width: 768px) {
+  .metric-card {
+    @apply hover:rotate-0;
+  }
+}
+
+/* ===== PRINT STYLES ===== */
 @media print {
   .no-print {
     display: none !important;
   }
   
+  body {
+    @apply bg-white text-black;
+  }
+  
   .card {
-    @apply shadow-none border border-gray-300;
+    @apply border border-gray-300;
+    box-shadow: none;
   }
 }
