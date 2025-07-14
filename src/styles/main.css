@@ -1,0 +1,237 @@
+/**
+ * Arquivo CSS principal do projeto RP-Finances
+ * 
+ * Este arquivo importa o Tailwind CSS e define:
+ * - Reset CSS global
+ * - Variáveis CSS customizadas
+ * - Classes base reutilizáveis
+ * - Estilos para componentes específicos
+ */
+
+/* Importa todas as classes do Tailwind CSS */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== VARIÁVEIS CSS CUSTOMIZADAS ===== */
+:root {
+  /* Cores principais da plataforma */
+  --color-primary: #0ea5e9;
+  --color-primary-dark: #0284c7;
+  --color-primary-light: #e0f2fe;
+  
+  /* Cores para dados financeiros */
+  --color-gain: #10b981;
+  --color-loss: #ef4444;
+  --color-neutral: #6b7280;
+  
+  /* Gradientes para backgrounds */
+  --gradient-primary: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --gradient-danger: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  
+  /* Sombras para cards */
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* ===== RESET E BASE STYLES ===== */
+@layer base {
+  /* Reset básico e configuração de fontes */
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+    font-variation-settings: 'opsz' 32;
+  }
+  
+  /* Títulos com espaçamento consistente */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+  
+  h1 { @apply text-3xl lg:text-4xl; }
+  h2 { @apply text-2xl lg:text-3xl; }
+  h3 { @apply text-xl lg:text-2xl; }
+  h4 { @apply text-lg lg:text-xl; }
+}
+
+/* ===== COMPONENTES REUTILIZÁVEIS ===== */
+@layer components {
+  /* Card base para seções */
+  .card {
+    @apply bg-white rounded-xl border border-gray-200 shadow-sm;
+    box-shadow: var(--shadow-card);
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .card:hover {
+    box-shadow: var(--shadow-card-hover);
+    @apply border-gray-300;
+  }
+  
+  /* Card com padding padrão */
+  .card-padded {
+    @apply card p-6;
+  }
+  
+  /* Botão primário */
+  .btn-primary {
+    @apply bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded-lg;
+    @apply transition-colors duration-200 shadow-sm hover:shadow-md;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  }
+  
+  /* Botão secundário */
+  .btn-secondary {
+    @apply bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg;
+    @apply transition-colors duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2;
+  }
+  
+  /* Input de formulário */
+  .input-field {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+    @apply transition-colors duration-200;
+  }
+  
+  /* Texto para valores monetários - positivos (ganho) */
+  .value-positive {
+    @apply text-finance-gain font-semibold;
+  }
+  
+  /* Texto para valores monetários - negativos (perda) */
+  .value-negative {
+    @apply text-finance-loss font-semibold;
+  }
+  
+  /* Texto para valores monetários - neutros */
+  .value-neutral {
+    @apply text-finance-neutral font-semibold;
+  }
+  
+  /* Badge para status */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .badge-success {
+    @apply badge bg-green-100 text-green-800;
+  }
+  
+  .badge-danger {
+    @apply badge bg-red-100 text-red-800;
+  }
+  
+  .badge-warning {
+    @apply badge bg-yellow-100 text-yellow-800;
+  }
+  
+  .badge-info {
+    @apply badge bg-blue-100 text-blue-800;
+  }
+}
+
+/* ===== UTILITÁRIOS CUSTOMIZADOS ===== */
+@layer utilities {
+  /* Gradiente de fundo primário */
+  .bg-gradient-primary {
+    background: var(--gradient-primary);
+  }
+  
+  /* Gradiente de fundo para ganhos */
+  .bg-gradient-success {
+    background: var(--gradient-success);
+  }
+  
+  /* Gradiente de fundo para perdas */
+  .bg-gradient-danger {
+    background: var(--gradient-danger);
+  }
+  
+  /* Animação de fade in */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+  
+  /* Animação de slide up */
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  /* Truncar texto com ellipsis */
+  .text-truncate {
+    @apply truncate;
+  }
+  
+  /* Scrollbar customizada */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f5f9;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    @apply bg-gray-100;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+  }
+}
+
+/* ===== KEYFRAMES PARA ANIMAÇÕES ===== */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== RESPONSIVIDADE ESPECÍFICA ===== */
+@media (max-width: 768px) {
+  .card-padded {
+    @apply p-4;
+  }
+  
+  /* Ajustes para mobile */
+  .mobile-stack {
+    @apply flex-col space-y-3;
+  }
+}
+
+/* ===== IMPRESSÃO ===== */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .card {
+    @apply shadow-none border border-gray-300;
+  }
+}

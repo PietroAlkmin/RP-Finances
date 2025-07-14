@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <!-- Meta tags essenciais para SEO e responsividade -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="RP Finances - Plataforma completa para gestão de investimentos e portfolio">
+    
+    <!-- Título da aplicação -->
+    <title>RP Finances - Portfolio</title>
+    
+    <!-- Importação do CSS base com Tailwind -->
+    <link rel="stylesheet" href="./styles/main.css">
+    
+    <!-- Favicon (será adicionado depois) -->
+    <link rel="icon" type="image/svg+xml" href="./assets/favicon.ico">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Container principal da aplicação -->
+    <div id="app" class="min-h-screen">
+        
+        <!-- Header da aplicação -->
+        <header class="bg-white shadow-sm border-b border-gray-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    
+                    <!-- Logo e título -->
+                    <div class="flex items-center">
+                        <h1 class="text-2xl font-bold text-gray-900">
+                            RP Finances
+                        </h1>
+                        <span class="ml-2 text-sm text-gray-500">Portfolio</span>
+                    </div>
+                    
+                    <!-- Menu de navegação (será expandido depois) -->
+                    <nav class="flex items-center space-x-4">
+                        <button class="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                            Dashboard
+                        </button>
+                        <button class="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
+                            Configurações
+                        </button>
+                    </nav>
+                    
+                </div>
+            </div>
+        </header>
+        
+        <!-- Conteúdo principal - Portfolio -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            
+            <!-- Título da página -->
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-gray-900">Meu Portfolio</h2>
+                <p class="text-gray-600 mt-2">Visão consolidada de todos os seus investimentos</p>
+            </div>
+            
+            <!-- Cards de resumo financeiro -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                
+                <!-- Card: Patrimônio Total -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-600">Patrimônio Total</p>
+                            <p class="text-2xl font-bold text-gray-900" id="total-assets">
+                                Carregando...
+                            </p>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Card: Rentabilidade -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-600">Rentabilidade (30d)</p>
+                            <p class="text-2xl font-bold text-green-600" id="monthly-return">
+                                Carregando...
+                            </p>
+                        </div>
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Card: Última Atualização -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-600">Última Atualização</p>
+                            <p class="text-2xl font-bold text-gray-900" id="last-update">
+                                Carregando...
+                            </p>
+                        </div>
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+            
+            <!-- Seção: Contas Conectadas -->
+            <div class="bg-white rounded-lg shadow mb-8">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900">Contas Conectadas</h3>
+                    <p class="text-sm text-gray-600">Instituições financeiras integradas ao seu portfolio</p>
+                </div>
+                <div class="p-6">
+                    <div id="connected-accounts" class="space-y-4">
+                        <!-- Lista de contas será carregada via TypeScript -->
+                        <div class="text-center py-8 text-gray-500">
+                            <p>Carregando contas conectadas...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Seção: Distribuição de Ativos -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900">Distribuição de Ativos</h3>
+                    <p class="text-sm text-gray-600">Como seus investimentos estão divididos</p>
+                </div>
+                <div class="p-6">
+                    <div id="asset-distribution" class="space-y-4">
+                        <!-- Gráfico e lista de ativos será carregada via TypeScript -->
+                        <div class="text-center py-8 text-gray-500">
+                            <p>Carregando distribuição de ativos...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </main>
+        
+    </div>
+    
+    <!-- Importação do TypeScript principal -->
+    <script type="module" src="./ts/main.ts"></script>
+</body>
+</html>

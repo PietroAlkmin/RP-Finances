@@ -1,19 +1,23 @@
 {
-  "name": "dashboard-financeiro",
+  "name": "rp-finances",
   "version": "1.0.0",
-  "description": "Dashboard financeiro com dados de APIs externas",
-  "main": "proxy-server.js",
+  "description": "Plataforma completa para investidores - Portfolio centralizado",
+  "type": "module",
   "scripts": {
-    "start": "node proxy-server.js",
-    "dev": "nodemon proxy-server.js"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "start": "vite dev --host"
   },
   "dependencies": {
-    "axios": "^1.6.2",
-    "body-parser": "^1.20.2",
-    "cors": "^2.8.5",
-    "express": "^4.18.2"
+    "@supabase/supabase-js": "^2.38.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "typescript": "^5.2.2",
+    "vite": "^5.0.0",
+    "@types/node": "^20.9.0",
+    "tailwindcss": "^3.3.5",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.31"
   }
 }
