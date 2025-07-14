@@ -4,7 +4,7 @@
  */
 
 import { InvestmentCollector } from './portfolio/InvestmentCollector.js';
-import type { PluggyConfig, Investment, PortfolioSummary } from './integrations/pluggy/PluggyTypes.js';
+import type { PluggyConfig, Investment, PortfolioSummary, InvestmentType } from './integrations/pluggy/PluggyTypes.js';
 import { ENVIRONMENT_CONFIG } from '../config/environment.js';
 
 /**
@@ -117,17 +117,187 @@ class PortfolioApp {
    * Atualiza a interface com os dados coletados
    */
   private updateUI(summary: PortfolioSummary): void {
-    // Atualiza cards de resumo
+    // Atualiza cards de resumo com cores dinâmicas
     this.updateElement('totalValue', `R$ ${summary.totalBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
     this.updateElement('totalCount', summary.totalInvestments.toString());
-    this.updateElement('totalProfit', `R$ ${summary.totalProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
-    this.updateElement('profitPercent', `${summary.profitPercentage.toFixed(2)}%`);
+    
+    // Card de resultado com cor dinâmica
+    const profitElement = document.getElementById('totalProfit');
+    if (profitElement) {
+      profitElement.textContent = `R$ ${Math.abs(summary.totalProfit).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+      const profitCard = profitElement.closest('.group');
+      if (profitCard) {
+        // Remove classes antigas
+        profitCard.classList.remove('from-emerald-500', 'via-emerald-600', 'to-teal-600', 'from-red-500', 'via-red-600', 'to-pink-600');
+        // Adiciona novas classes baseadas no resultado
+        if (summary.totalProfit >= 0) {
+          profitCard.classList.add('from-emerald-500', 'via-emerald-600', 'to-teal-600');
+        } else {
+          profitCard.classList.add('from-red-500', 'via-red-600', 'to-pink-600');
+        }
+      }
+    }
+    
+    // Card de rentabilidade com dados reais
+    const percentElement = document.getElementById('profitPercent');
+    if (percentElement) {
+      if (summary.averageAnnualRate > 0) {
+        percentElement.innerHTML = `
+          <div class="space-y-1">
+            <div class="text-2xl font-bold">${summary.profitPercentage.toFixed(2)}%</div>
+            <div class="text-xs opacity-80">Resultado</div>
+            <div class="text-sm font-medium">${summary.averageAnnualRate.toFixed(2)}% a.a.</div>
+          </div>
+        `;
+      } else {
+        percentElement.textContent = `${summary.profitPercentage.toFixed(2)}%`;
+      }
+    }
+
+    // Atualiza contadores adicionais
+    this.updateElement('investmentCount', `${summary.totalInvestments} itens`);
 
     // Atualiza lista de investimentos
     this.updateInvestmentsList(summary.investments);
 
+    // Atualiza análise do portfolio
+    this.updatePortfolioAnalysis(summary);
+
     // Atualiza timestamp
     this.updateLastUpdateTime();
+
+    // Log do resumo melhorado
+    console.log('💰 === RESUMO FINANCEIRO ATUALIZADO ===');
+    console.log(`💎 Patrimônio Total: R$ ${summary.totalBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
+    console.log(`📈 Resultado: R$ ${summary.totalProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${summary.profitPercentage.toFixed(2)}%)`);
+    console.log(`📊 Rentabilidade Média: ${summary.averageAnnualRate.toFixed(2)}% ao ano`);
+    console.log(`🧾 Impostos Totais: R$ ${summary.totalTaxes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
+
+    // Atualiza análise do portfólio
+    this.updatePortfolioAnalysis(summary);
+  }
+
+  /**
+   * Atualiza a seção de análise do portfolio
+   */
+  private updatePortfolioAnalysis(summary: PortfolioSummary): void {
+    const analysisSection = document.getElementById('portfolioAnalysis');
+    const metricsContainer = document.getElementById('portfolioMetrics');
+    
+    if (!analysisSection || !metricsContainer || summary.totalInvestments === 0) {
+      analysisSection?.classList.add('hidden');
+      return;
+    }
+
+    // Mostra a seção
+    analysisSection.classList.remove('hidden');
+
+    // Calcula métricas avançadas
+    const bestPerformingType = this.getBestPerformingType(summary.byType);
+    const diversificationScore = this.calculateDiversificationScore(summary.byType);
+
+    metricsContainer.innerHTML = `
+      <!-- Diversificação -->
+      <div class="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl p-6 border border-blue-200">
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
+            <span class="text-2xl">🎯</span>
+          </div>
+          <span class="text-3xl font-bold text-blue-700">${diversificationScore.toFixed(0)}%</span>
+        </div>
+        <h3 class="font-semibold text-blue-900 mb-2">Diversificação</h3>
+        <p class="text-sm text-blue-700">${this.getDiversificationMessage(diversificationScore)}</p>
+      </div>
+
+      <!-- Melhor Categoria -->
+      <div class="bg-gradient-to-br from-emerald-50 to-green-100 rounded-xl p-6 border border-emerald-200">
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center">
+            <span class="text-2xl">🏆</span>
+          </div>
+          <span class="text-lg font-bold text-emerald-700">${bestPerformingType.profit >= 0 ? '+' : ''}${bestPerformingType.profitPercentage.toFixed(1)}%</span>
+        </div>
+        <h3 class="font-semibold text-emerald-900 mb-2">Melhor Categoria</h3>
+        <p class="text-sm text-emerald-700">${this.getTypeName(bestPerformingType.type)}</p>
+      </div>
+
+      <!-- Impostos -->
+      <div class="bg-gradient-to-br from-orange-50 to-red-100 rounded-xl p-6 border border-orange-200">
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center">
+            <span class="text-2xl">🧾</span>
+          </div>
+          <span class="text-lg font-bold text-orange-700">R$ ${summary.totalTaxes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+        </div>
+        <h3 class="font-semibold text-orange-900 mb-2">Impostos</h3>
+        <p class="text-sm text-orange-700">${((summary.totalTaxes / summary.totalBalance) * 100).toFixed(1)}% do patrimônio</p>
+      </div>
+
+      <!-- Rentabilidade Média -->
+      <div class="bg-gradient-to-br from-purple-50 to-pink-100 rounded-xl p-6 border border-purple-200">
+        <div class="flex items-center justify-between mb-4">
+          <div class="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center">
+            <span class="text-2xl">📊</span>
+          </div>
+          <span class="text-lg font-bold text-purple-700">${summary.averageAnnualRate.toFixed(1)}%</span>
+        </div>
+        <h3 class="font-semibold text-purple-900 mb-2">Rent. Média</h3>
+        <p class="text-sm text-purple-700">Taxa anual ponderada</p>
+      </div>
+    `;
+  }
+
+  /**
+   * Calcula score de diversificação (0-100%)
+   */
+  private calculateDiversificationScore(byType: PortfolioSummary['byType']): number {
+    const types = Object.keys(byType);
+    const typeCount = types.length;
+    
+    if (typeCount <= 1) return 0;
+    if (typeCount >= 4) return 100;
+    
+    // Calcula concentração (quanto mais equilibrado, melhor)
+    const percentages = types.map(type => {
+      const typeData = byType[type as keyof typeof byType];
+      return typeData ? typeData.percentage : 0;
+    });
+    const maxConcentration = Math.max(...percentages);
+    
+    // Score baseado na quantidade de tipos e distribuição
+    const diversityScore = (typeCount / 4) * 100; // Máximo 4 tipos principais
+    const distributionScore = (1 - maxConcentration / 100) * 100; // Penaliza concentração
+    
+    return Math.min(100, (diversityScore + distributionScore) / 2);
+  }
+
+  /**
+   * Encontra o tipo de investimento com melhor performance
+   */
+  private getBestPerformingType(byType: PortfolioSummary['byType']): { type: InvestmentType; profit: number; profitPercentage: number } {
+    let bestType: InvestmentType = 'FIXED_INCOME';
+    let bestProfit = -Infinity;
+    let bestProfitPercentage = -Infinity;
+
+    Object.entries(byType).forEach(([type, data]) => {
+      if (data!.profitPercentage > bestProfitPercentage) {
+        bestType = type as InvestmentType;
+        bestProfit = data!.profit;
+        bestProfitPercentage = data!.profitPercentage;
+      }
+    });
+
+    return { type: bestType, profit: bestProfit, profitPercentage: bestProfitPercentage };
+  }
+
+  /**
+   * Retorna mensagem baseada no score de diversificação
+   */
+  private getDiversificationMessage(score: number): string {
+    if (score >= 80) return 'Excelente diversificação!';
+    if (score >= 60) return 'Boa diversificação';
+    if (score >= 40) return 'Diversificação moderada';
+    return 'Portfolio concentrado';
   }
 
   /**
@@ -195,27 +365,36 @@ class PortfolioApp {
           <!-- Lista de Investimentos da Instituição -->
           <div class="bg-white border-x border-b border-slate-200 rounded-b-xl">
             ${instInvestments.map((investment, index) => {
+              // Usa apenas dados reais do Pluggy
               const profit = investment.amountProfit || 0;
               const originalAmount = investment.amountOriginal || investment.amount || investment.balance;
               const profitPercent = originalAmount > 0 ? ((profit / originalAmount) * 100) : 0;
               
-              // Dados de rentabilidade da Pluggy
+              // Dados de rentabilidade da Pluggy (apenas dados reais)
               const annualRate = investment.annualRate || 0;
               const monthlyRate = investment.lastMonthRate || 0;
               const yearRate = investment.lastTwelveMonthsRate || 0;
               const taxes = (investment.taxes || 0) + (investment.taxes2 || 0);
               
-              // Determina cor baseada no lucro/prejuízo
-              const profitColor = profit >= 0 ? 'text-emerald-600' : 'text-red-600';
-              const profitBgColor = profit >= 0 ? 'bg-emerald-50' : 'bg-red-50';
-              const profitIcon = profit >= 0 ? '📈' : '📉';
+              // Debug: Log dos dados de rentabilidade reais
+              if (investment.name) {
+                console.log(`🔍 [${investment.name}] Dados Reais:`, {
+                  annualRate: investment.annualRate,
+                  monthlyRate: investment.lastMonthRate,
+                  yearRate: investment.lastTwelveMonthsRate,
+                  amountProfit: investment.amountProfit,
+                  amountOriginal: investment.amountOriginal,
+                  taxes: investment.taxes,
+                  taxes2: investment.taxes2
+                });
+              }
               
+              // Determina cor baseada no lucro/prejuízo
               const isPositive = profit > 0;
               const isNegative = profit < 0;
-              
               const profitClass = isPositive ? 'text-emerald-600' : isNegative ? 'text-red-600' : 'text-slate-600';
               const profitBgClass = isPositive ? 'bg-emerald-50 border-emerald-200' : isNegative ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-200';
-              const profitIcon = isPositive ? '↗️' : isNegative ? '↘️' : '➡️';
+              const profitIconSymbol = isPositive ? '↗️' : isNegative ? '↘️' : '➡️';
 
               const typeIcon = this.getInvestmentTypeIcon(investment.type);
               const borderClass = index === instInvestments.length - 1 ? '' : 'border-b border-slate-100';
@@ -253,7 +432,7 @@ class PortfolioApp {
                       ${profit !== 0 ? `
                         <div class="text-right">
                           <div class="inline-flex items-center space-x-2 px-3 py-2 rounded-lg border ${profitBgClass}">
-                            <span class="text-lg">${profitIcon}</span>
+                            <span class="text-lg">${profitIconSymbol}</span>
                             <div class="text-right">
                               <p class="font-semibold ${profitClass}">
                                 R$ ${Math.abs(profit).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -262,6 +441,19 @@ class PortfolioApp {
                                 ${profitPercent > 0 ? '+' : ''}${profitPercent.toFixed(2)}%
                               </p>
                             </div>
+                          </div>
+                        </div>
+                      ` : ''}
+
+                      <!-- Rentabilidade (se disponível) -->
+                      ${(annualRate > 0 || monthlyRate > 0 || yearRate > 0) ? `
+                        <div class="text-right">
+                          <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <p class="text-xs text-blue-600 font-medium mb-2">📊 Rentabilidade</p>
+                            ${annualRate > 0 ? `<p class="text-sm text-blue-700"><span class="font-medium">${annualRate.toFixed(2)}%</span> <span class="text-xs">anual</span></p>` : ''}
+                            ${monthlyRate > 0 ? `<p class="text-sm text-blue-700"><span class="font-medium">${monthlyRate.toFixed(2)}%</span> <span class="text-xs">mês</span></p>` : ''}
+                            ${yearRate > 0 ? `<p class="text-sm text-blue-700"><span class="font-medium">${yearRate.toFixed(2)}%</span> <span class="text-xs">12m</span></p>` : ''}
+                            ${taxes > 0 ? `<p class="text-xs text-slate-500">IR: R$ ${taxes.toFixed(2)}</p>` : ''}
                           </div>
                         </div>
                       ` : ''}
@@ -554,6 +746,25 @@ class PortfolioApp {
     
     return iconMap[type] || iconMap[type.toUpperCase()] || '💼';
   }
+
+  /**
+   * Retorna nome amigável do tipo de investimento
+   */
+  private getTypeName(type: InvestmentType): string {
+    const names = {
+      FIXED_INCOME: 'Renda Fixa',
+      EQUITY: 'Ações',
+      MUTUAL_FUND: 'Fundos',
+      SECURITY: 'Previdência',
+      ETF: 'ETFs',
+      COE: 'COE',
+    };
+    return names[type] || type;
+  }
+
+  /**
+   * Gera dados de rentabilidade realistas quando os dados reais não estão disponíveis
+   */
 }
 
 /**

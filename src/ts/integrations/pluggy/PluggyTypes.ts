@@ -84,6 +84,8 @@ export interface Investment {
   
   // Performance
   annualRate?: number;     // Taxa anual
+  lastMonthRate?: number;  // Taxa do último mês
+  lastTwelveMonthsRate?: number; // Taxa dos últimos 12 meses
   rate?: number;           // Taxa fixa
   rateType?: string;       // Tipo da taxa (CDI, IPCA, etc)
   
@@ -156,12 +158,16 @@ export interface PortfolioSummary {
   totalInvestments: number;
   totalProfit: number;
   profitPercentage: number;
+  totalTaxes: number;
+  averageAnnualRate: number;
   
   byType: {
     [key in InvestmentType]?: {
       count: number;
       balance: number;
       percentage: number;
+      profit: number;
+      profitPercentage: number;
     };
   };
   

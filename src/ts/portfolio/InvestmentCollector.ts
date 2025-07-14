@@ -28,6 +28,33 @@ export class InvestmentCollector {
       console.log('📊 === RESUMO DA COLETA ===');
       console.log(`✅ Total de investimentos: ${investments.length}`);
       
+      // Debug: Log dos primeiros investimentos para análise
+      if (investments.length > 0) {
+        console.log('🔍 === ANÁLISE DOS DADOS RECEBIDOS ===');
+        investments.slice(0, 3).forEach((inv, index) => {
+          console.log(`📈 Investimento ${index + 1}: ${inv.name}`);
+          console.log('   Dados de rentabilidade:', {
+            annualRate: inv.annualRate,
+            lastMonthRate: inv.lastMonthRate,
+            lastTwelveMonthsRate: inv.lastTwelveMonthsRate,
+            amountProfit: inv.amountProfit,
+            amountOriginal: inv.amountOriginal,
+            rate: inv.rate,
+            rateType: inv.rateType,
+            taxes: inv.taxes,
+            taxes2: inv.taxes2
+          });
+          console.log('   Dados básicos:', {
+            balance: inv.balance,
+            amount: inv.amount,
+            value: inv.value,
+            quantity: inv.quantity,
+            type: inv.type,
+            subtype: inv.subtype
+          });
+        });
+      }
+      
       // Mostra resumo por tipo
       const summary = this.generateSummary(investments);
       this.logSummary(summary);
@@ -44,42 +71,73 @@ export class InvestmentCollector {
    * Gera resumo consolidado do portfolio
    */
   generateSummary(investments: Investment[]): PortfolioSummary {
-    const totalBalance = investments.reduce((sum, inv) => sum + inv.balance, 0);
-    const totalProfit = investments.reduce((sum, inv) => sum + (inv.amountProfit || 0), 0);
-    const totalOriginal = investments.reduce((sum, inv) => sum + (inv.amountOriginal || inv.amount || 0), 0);
+    // Usa apenas dados reais do Pluggy
+    const enrichedInvestments = investments;
+    
+    const totalBalance = enrichedInvestments.reduce((sum, inv) => sum + inv.balance, 0);
+    const totalProfit = enrichedInvestments.reduce((sum, inv) => sum + (inv.amountProfit || 0), 0);
+    const totalOriginal = enrichedInvestments.reduce((sum, inv) => sum + (inv.amountOriginal || inv.amount || inv.balance), 0);
+    const totalTaxes = enrichedInvestments.reduce((sum, inv) => sum + (inv.taxes || 0) + (inv.taxes2 || 0), 0);
     
     const profitPercentage = totalOriginal > 0 ? (totalProfit / totalOriginal) * 100 : 0;
+
+    // Calcula rentabilidade média ponderada (apenas com dados reais)
+    let weightedAnnualRate = 0;
+    let totalWeightedBalance = 0;
+    
+    enrichedInvestments.forEach(investment => {
+      if (investment.annualRate && investment.balance > 0) {
+        weightedAnnualRate += investment.annualRate * investment.balance;
+        totalWeightedBalance += investment.balance;
+      }
+    });
+    
+    const averageAnnualRate = totalWeightedBalance > 0 ? weightedAnnualRate / totalWeightedBalance : 0;
 
     // Agrupa por tipo de investimento
     const byType: PortfolioSummary['byType'] = {};
     
-    investments.forEach(investment => {
-      if (!byType[investment.type]) {
-        byType[investment.type] = {
+    enrichedInvestments.forEach(investment => {
+      const investmentType = investment.type as InvestmentType;
+      if (!byType[investmentType]) {
+        byType[investmentType] = {
           count: 0,
           balance: 0,
           percentage: 0,
+          profit: 0,
+          profitPercentage: 0,
         };
       }
 
-      byType[investment.type]!.count++;
-      byType[investment.type]!.balance += investment.balance;
+      byType[investmentType]!.count++;
+      byType[investmentType]!.balance += investment.balance;
+      byType[investmentType]!.profit += investment.amountProfit || 0;
     });
 
-    // Calcula percentuais
+    // Calcula percentuais e rentabilidade por tipo
     Object.keys(byType).forEach(type => {
       const typeKey = type as InvestmentType;
-      byType[typeKey]!.percentage = totalBalance > 0 ? (byType[typeKey]!.balance / totalBalance) * 100 : 0;
+      const typeData = byType[typeKey]!;
+      typeData.percentage = totalBalance > 0 ? (typeData.balance / totalBalance) * 100 : 0;
+      
+      // Calcula rentabilidade do tipo baseada no investimento original
+      const typeOriginal = enrichedInvestments
+        .filter(inv => inv.type === typeKey)
+        .reduce((sum, inv) => sum + (inv.amountOriginal || inv.amount || 0), 0);
+      
+      typeData.profitPercentage = typeOriginal > 0 ? (typeData.profit / typeOriginal) * 100 : 0;
     });
 
     return {
       totalBalance,
-      totalInvestments: investments.length,
+      totalInvestments: enrichedInvestments.length,
       totalProfit,
       profitPercentage,
+      totalTaxes,
+      averageAnnualRate,
       byType,
       accounts: [], // Será preenchido quando implementarmos contas
-      investments,
+      investments: enrichedInvestments, // Retorna dados enriquecidos
       lastUpdated: new Date().toISOString(),
     };
   }
@@ -154,4 +212,5 @@ export class InvestmentCollector {
     return this.filterByType(investments, type)
       .reduce((sum, inv) => sum + inv.balance, 0);
   }
+
 }
