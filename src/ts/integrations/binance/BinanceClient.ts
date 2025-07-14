@@ -4,7 +4,6 @@
  * Baseado na biblioteca oficial binance-connector-typescript
  */
 
-import * as CryptoJS from 'crypto-js';
 import type {
   BinanceConfig,
   AccountInfo,
@@ -64,14 +63,7 @@ export class BinanceClient {
   }
 
   /**
-   * Gera assinatura HMAC-SHA256 para autenticação
-   */
-  private generateSignature(queryString: string): string {
-    return CryptoJS.HmacSHA256(queryString, this.config.apiSecret).toString(CryptoJS.enc.Hex);
-  }
-
-  /**
-   * Cria query string com timestamp e assinatura
+   * Cria query string com timestamp (sem assinatura - será gerada pelo proxy)
    */
   private createSignedQueryString(params: Record<string, any> = {}): string {
     const timestamp = this.getTimestamp();
@@ -88,10 +80,8 @@ export class BinanceClient {
       }
     });
 
-    const queryString = new URLSearchParams(queryParams).toString();
-    const signature = this.generateSignature(queryString);
-    
-    return `${queryString}&signature=${signature}`;
+    // Retorna apenas os parâmetros, a assinatura será gerada pelo proxy
+    return new URLSearchParams(queryParams).toString();
   }
 
   /**
@@ -111,11 +101,8 @@ export class BinanceClient {
       'Content-Type': 'application/json',
     };
 
-    // Adiciona credenciais para o proxy se requer autenticação
-    if (requiresAuth) {
-      headers['X-API-Key'] = this.config.apiKey;
-      headers['X-API-Secret'] = this.config.apiSecret;
-    }
+    // O proxy irá adicionar as credenciais automaticamente do arquivo .env
+    // Não precisamos enviar credenciais do frontend
 
     let body: string | undefined;
     

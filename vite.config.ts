@@ -15,6 +15,12 @@ export default defineConfig({
   // Diretório raiz do projeto
   root: './src',
   
+  // Definir variáveis globais para evitar erros de Node.js no browser
+  define: {
+    global: 'globalThis',
+    'process.env': {}
+  },
+  
   // Diretório de build/output
   build: {
     outDir: '../dist',

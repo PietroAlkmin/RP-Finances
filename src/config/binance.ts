@@ -7,12 +7,12 @@ import type { BinanceConfig } from '../ts/integrations/binance/BinanceTypes.js';
 
 // ===== CONFIGURAÇÃO BINANCE =====
 export const BINANCE_CONFIG: BinanceConfig = {
-  // IMPORTANTE: Substitua pelas suas credenciais reais
-  // Para segurança, use variáveis de ambiente em produção
-  apiKey: process.env.BINANCE_API_KEY || 'SUA_BINANCE_API_KEY_AQUI',
+  // IMPORTANTE: Credenciais são enviadas pelo proxy, não precisam estar no frontend
+  // O frontend envia apenas requisições para o proxy que adiciona as credenciais
+  apiKey: 'DUMMY_KEY', // Não usado no frontend - proxy adiciona as credenciais
   
-  // Secret Key da sua conta Binance
-  apiSecret: process.env.BINANCE_API_SECRET || 'SUA_BINANCE_API_SECRET_AQUI',
+  // Secret Key - também não usado no frontend
+  apiSecret: 'DUMMY_SECRET', // Não usado no frontend - proxy adiciona as credenciais
   
   // URL base (undefined = produção, ou especifique testnet)
   baseUrl: undefined, // Para produção

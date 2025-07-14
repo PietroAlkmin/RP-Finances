@@ -6,6 +6,10 @@ import express from 'express';
 import cors from 'cors';
 import fetch from 'node-fetch';
 import crypto from 'crypto';
+import dotenv from 'dotenv';
+
+// Carrega variáveis de ambiente do arquivo .env
+dotenv.config();
 
 const app = express();
 const PORT = 3009;
@@ -31,18 +35,39 @@ function generateSignature(queryString, apiSecret) {
  * Middleware para adicionar headers de autenticação Binance
  */
 function addBinanceAuth(req, res, next) {
-  const apiKey = req.headers['x-api-key'];
-  const apiSecret = req.headers['x-api-secret'];
+  // Usa credenciais do arquivo .env, não do frontend
+  const apiKey = process.env.BINANCE_API_KEY;
+  const apiSecret = process.env.BINANCE_API_SECRET;
   
   if (!apiKey || !apiSecret) {
-    return res.status(401).json({ error: 'API Key e Secret são obrigatórios' });
+    console.error('❌ BINANCE_API_KEY ou BINANCE_API_SECRET não encontradas no .env');
+    return res.status(500).json({ 
+      error: 'Credenciais Binance não configuradas no servidor',
+      hint: 'Configure BINANCE_API_KEY e BINANCE_API_SECRET no arquivo .env'
+    });
   }
   
-  // Adiciona timestamp se necessário
+  console.log(`🔑 Usando API Key: ${apiKey.substring(0, 8)}...`);
+  
+  // Gera nova assinatura no servidor com as credenciais corretas
   if (req.query.timestamp) {
+    // Primeiro, cria a query string SEM a assinatura
     const queryString = new URLSearchParams(req.query).toString();
+    // Depois, gera a assinatura baseada na query string
     const signature = generateSignature(queryString, apiSecret);
-    req.query.signature = signature;
+    
+    // IMPORTANTE: Salva os parâmetros + assinatura em um objeto customizado
+    req.binanceQuery = {
+      ...req.query,
+      signature: signature
+    };
+    
+    console.log(`🔐 Query string original: ${queryString}`);
+    console.log(`🔐 Assinatura gerada: ${signature.substring(0, 16)}...`);
+    console.log(`🔐 Query params finais:`, Object.keys(req.binanceQuery));
+  } else {
+    // Se não tem timestamp, apenas copia os params originais
+    req.binanceQuery = { ...req.query };
   }
   
   req.binanceHeaders = {
@@ -88,12 +113,17 @@ app.get('/api/binance/api/v3/account', addBinanceAuth, async (req, res) => {
   try {
     const url = new URL('/api/v3/account', BINANCE_BASE_URL);
     
-    // Adiciona query parameters
-    Object.keys(req.query).forEach(key => {
-      url.searchParams.append(key, req.query[key]);
+    console.log(`🔍 Debug - req.binanceQuery:`, req.binanceQuery);
+    console.log(`🔍 Debug - signature em binanceQuery:`, req.binanceQuery.signature ? 'PRESENTE' : 'AUSENTE');
+    
+    // Adiciona query parameters incluindo a assinatura gerada pelo middleware
+    Object.keys(req.binanceQuery).forEach(key => {
+      url.searchParams.append(key, req.binanceQuery[key]);
+      console.log(`🔍 Adicionando param: ${key} = ${req.binanceQuery[key].substring ? req.binanceQuery[key].substring(0, 16) + '...' : req.binanceQuery[key]}`);
     });
     
     console.log(`🌐 Proxy Binance: GET ${url.toString()}`);
+    console.log(`🔐 Query params incluem signature: ${url.searchParams.has('signature')}`);
     
     const response = await fetch(url.toString(), {
       method: 'GET',
