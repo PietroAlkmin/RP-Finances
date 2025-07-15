@@ -1,41 +1,28 @@
 /**
- * Configuração de exemplo para integração com Binance
- * Arquivo de exemplo - NÃO commitar com chaves reais
+ * Configuração para integração com Binance
+ * IMPORTANTE: As chaves são processadas no servidor (proxy), não no frontend
  */
 
 import type { BinanceConfig } from '../ts/integrations/binance/BinanceTypes';
 
-// Carregar variáveis de ambiente
-import 'dotenv/config';
-
 // ===== CONFIGURAÇÃO BINANCE =====
+// No frontend, usamos configuração vazia pois as chaves ficam no servidor
 export const BINANCE_CONFIG: BinanceConfig = {
-  // Usar variáveis de ambiente do arquivo .env
-  apiKey: process.env.BINANCE_API_KEY || 'SUA_BINANCE_API_KEY_AQUI',
-  apiSecret: process.env.BINANCE_API_SECRET || 'SUA_BINANCE_API_SECRET_AQUI',
+  // Chaves são processadas pelo proxy server (não expostas no frontend)
+  apiKey: '',
+  apiSecret: '',
   
-  // URL base (pode ser omitida para usar produção)
-  baseUrl: process.env.BINANCE_BASE_URL, // undefined = produção
+  // URL base sempre será o proxy local
+  baseUrl: 'http://localhost:3009',
   
-  // Testnet (recomendado para desenvolvimento)
-  testnet: process.env.NODE_ENV === 'development' ? true : false
+  // Testnet (será configurado via proxy)
+  testnet: true
 };
 
 // ===== VALIDAÇÃO =====
 export function validateBinanceConfig(): boolean {
-  if (!BINANCE_CONFIG.apiKey || BINANCE_CONFIG.apiKey === 'SUA_BINANCE_API_KEY_AQUI') {
-    console.error('❌ BINANCE_API_KEY não configurada');
-    return false;
-  }
-  
-  if (!BINANCE_CONFIG.apiSecret || BINANCE_CONFIG.apiSecret === 'SUA_BINANCE_API_SECRET_AQUI') {
-    console.error('❌ BINANCE_API_SECRET não configurada');
-    return false;
-  }
-  
-  console.log('✅ Configuração Binance validada');
-  console.log(`🌐 Modo: ${BINANCE_CONFIG.testnet ? 'Testnet' : 'Produção'}`);
-  
+  // No frontend, a validação é feita pelo proxy
+  console.log('✅ Configuração Binance carregada (chaves processadas no servidor)');
   return true;
 }
 

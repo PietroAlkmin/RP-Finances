@@ -8,6 +8,7 @@ import type { PluggyConfig, Investment, PortfolioSummary, InvestmentType } from 
 import { ENVIRONMENT_CONFIG } from '../config/environment.js';
 import { BinanceInvestmentCollector } from './integrations/binance/BinanceInvestmentCollector.js';
 import { BINANCE_CONFIG, validateBinanceConfig } from '../config/binance.js';
+import { StateManager } from './utils/StateManager.js';
 
 /**
  * Configuração da aplicação
@@ -36,6 +37,9 @@ class PortfolioApp {
       this.binanceCollector = new BinanceInvestmentCollector(BINANCE_CONFIG);
       console.log('🟠 Binance configurado e pronto para uso');
     }
+    
+    // Carrega estado anterior se existir
+    this.loadPreviousState();
   }
 
   /**
@@ -75,6 +79,12 @@ class PortfolioApp {
     }
     if (connectBtn2) {
       connectBtn2.addEventListener('click', () => this.showIntegrationModal());
+    }
+
+    // Botão de limpar cache
+    const clearCacheBtn = document.getElementById('clearCacheBtn');
+    if (clearCacheBtn) {
+      clearCacheBtn.addEventListener('click', () => this.clearCache());
     }
 
     // Modal de seleção de integrações
@@ -141,6 +151,9 @@ class PortfolioApp {
 
       // Atualiza interface
       this.updateUI(summary);
+
+      // Salva investimentos no cache
+      this.saveInvestmentsToCache();
 
       // Remove status de carregamento
       this.hideStatus();
@@ -618,6 +631,9 @@ class PortfolioApp {
       // Adiciona o item conectado à configuração
       APP_CONFIG.connectedItems.push(itemData.item.id);
       
+      // Salva estado da conexão Pluggy
+      StateManager.addPluggyItem(itemData.item.id);
+      
       // Mostra sucesso
       this.showSuccess(`Conta ${itemData.item.connector.name} conectada com sucesso!`);
       
@@ -869,6 +885,12 @@ class PortfolioApp {
       // Adiciona aos investimentos atuais
       this.currentInvestments = [...this.currentInvestments, ...binanceInvestments];
       
+      // Salva estado da conexão Binance
+      StateManager.setBinanceConnected(true);
+      
+      // Salva investimentos no cache
+      this.saveInvestmentsToCache();
+      
       this.showStatus('', false);
 
       // Calcula resumo e atualiza interface
@@ -881,6 +903,84 @@ class PortfolioApp {
       console.error('❌ Erro ao conectar Binance:', error);
       this.showStatus('', false);
       this.showError('Erro ao conectar Binance: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
+    }
+  }
+
+  /**
+   * Carrega estado anterior da sessão
+   */
+  private loadPreviousState(): void {
+    const state = StateManager.loadState();
+    
+    // Restaura os IDs das contas conectadas
+    if (state.pluggyItemIds.length > 0) {
+      APP_CONFIG.connectedItems = [...state.pluggyItemIds];
+      console.log(`🔗 Restaurando ${state.pluggyItemIds.length} contas Pluggy conectadas`);
+    }
+    
+    if (state.investments.length > 0) {
+      console.log(`📂 Restaurando ${state.investments.length} investimentos do cache`);
+      this.currentInvestments = state.investments;
+      
+      // Atualiza interface imediatamente com dados do cache
+      const summary = this.collector.generateSummary(this.currentInvestments);
+      this.updateUI(summary);
+      
+      // Atualiza status das conexões na interface
+      this.updateConnectionStatus(state);
+    }
+    
+    if (StateManager.hasActiveConnections()) {
+      console.log('🔗 Conexões ativas detectadas:', {
+        pluggy: state.pluggyConnected,
+        binance: state.binanceConnected
+      });
+    }
+  }
+
+  /**
+   * Atualiza status visual das conexões
+   */
+  private updateConnectionStatus(state: any): void {
+    // Atualiza botões de conexão
+    if (state.pluggyConnected || state.binanceConnected) {
+      const connectButtons = document.querySelectorAll('.connect-button');
+      connectButtons.forEach(btn => {
+        const button = btn as HTMLElement;
+        button.innerHTML = '🔗 Reconectar Contas';
+        button.classList.add('connected');
+      });
+    }
+
+    // Mostra status no header
+    if (state.pluggyConnected && state.binanceConnected) {
+      this.showSuccess('✅ Pluggy e Binance conectados');
+    } else if (state.pluggyConnected) {
+      this.showSuccess('✅ Pluggy conectado');
+    } else if (state.binanceConnected) {
+      this.showSuccess('✅ Binance conectado');
+    }
+  }
+
+  /**
+   * Salva investimentos no cache
+   */
+  private saveInvestmentsToCache(): void {
+    StateManager.updateInvestments(this.currentInvestments);
+  }
+
+  /**
+   * Limpa o cache e recarrega a página
+   */
+  private clearCache(): void {
+    if (confirm('Tem certeza que deseja limpar todas as conexões e dados salvos?')) {
+      StateManager.clearState();
+      this.currentInvestments = [];
+      APP_CONFIG.connectedItems = [];
+      this.showSuccess('Cache limpo com sucesso! Recarregando página...');
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     }
   }
 }
