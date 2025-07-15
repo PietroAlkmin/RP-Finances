@@ -538,6 +538,11 @@ class PortfolioApp {
     try {
       console.log('🔑 Obtendo connect token...');
       
+      // Validação básica das credenciais
+      if (!APP_CONFIG.pluggy.clientId || APP_CONFIG.pluggy.clientId === 'CLIENT_ID_PLUGGY') {
+        throw new Error('Credenciais Pluggy não configuradas. Configure CLIENT_ID e CLIENT_SECRET válidos.');
+      }
+      
       const response = await fetch(`${APP_CONFIG.pluggy.baseUrl}/auth`, {
         method: 'POST',
         headers: {
@@ -550,11 +555,26 @@ class PortfolioApp {
       });
 
       if (!response.ok) {
-        throw new Error(`Erro na autenticação: ${response.status}`);
+        const errorText = await response.text();
+        console.error('❌ Erro na autenticação Pluggy:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        });
+        
+        if (response.status === 401) {
+          throw new Error('Credenciais Pluggy inválidas. Verifique CLIENT_ID e CLIENT_SECRET.');
+        }
+        
+        throw new Error(`Erro na autenticação Pluggy: ${response.status} - ${response.statusText}`);
       }
 
       const authData = await response.json();
       const apiKey = authData.apiKey || authData.accessToken;
+      
+      if (!apiKey) {
+        throw new Error('API Key não retornada pela autenticação Pluggy');
+      }
       
       // Agora cria o connect token
       const connectResponse = await fetch(`${APP_CONFIG.pluggy.baseUrl}/connect_token`, {
@@ -571,7 +591,13 @@ class PortfolioApp {
       });
 
       if (!connectResponse.ok) {
-        throw new Error(`Erro ao criar connect token: ${connectResponse.status}`);
+        const errorText = await connectResponse.text();
+        console.error('❌ Erro ao criar connect token:', {
+          status: connectResponse.status,
+          statusText: connectResponse.statusText,
+          body: errorText
+        });
+        throw new Error(`Erro ao criar connect token: ${connectResponse.status} - ${connectResponse.statusText}`);
       }
 
       const connectData = await connectResponse.json();
