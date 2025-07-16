@@ -213,4 +213,126 @@ export class InvestmentCollector {
       .reduce((sum, inv) => sum + inv.balance, 0);
   }
 
+  /**
+   * NOVA FUNCIONALIDADE: Busca transações de investimentos
+   * Método público para acessar transações via cliente Pluggy
+   */
+  async getAllInvestmentTransactions(itemIds: string[]) {
+    return await this.client.getAllInvestmentTransactions(itemIds);
+  }
+
+  /**
+   * NOVA FUNCIONALIDADE: Analisa cobertura histórica de dados
+   * Verifica qual é a data limite para coleta de transações
+   */
+  async analyzeDataCoverage(itemIds: string[]): Promise<{
+    oldestTransactionDate: Date | null;
+    newestTransactionDate: Date | null;
+    totalTransactions: number;
+    coverageByInvestment: Array<{
+      investmentName: string;
+      investmentId: string;
+      oldestTransaction: Date | null;
+      newestTransaction: Date | null;
+      transactionCount: number;
+    }>;
+  }> {
+    console.log('📊 === ANALISANDO COBERTURA HISTÓRICA ===');
+
+    try {
+      // Busca todas as transações
+      const transactionsByInvestment = await this.client.getAllInvestmentTransactions(itemIds);
+      
+      // Busca informações dos investimentos para correlacionar
+      const allInvestments = await this.client.getAllInvestments(itemIds);
+      
+      let oldestDate: Date | null = null;
+      let newestDate: Date | null = null;
+      let totalTransactions = 0;
+      const coverageByInvestment: Array<{
+        investmentName: string;
+        investmentId: string;
+        oldestTransaction: Date | null;
+        newestTransaction: Date | null;
+        transactionCount: number;
+      }> = [];
+
+      // Analisa cada investimento
+      for (const investment of allInvestments) {
+        const transactions = transactionsByInvestment.get(investment.id) || [];
+        
+        let investmentOldest: Date | null = null;
+        let investmentNewest: Date | null = null;
+
+        if (transactions.length > 0) {
+          // Ordena transações por data para encontrar a mais antiga e mais recente
+          const sortedTransactions = transactions.sort((a, b) => 
+            new Date(a.date).getTime() - new Date(b.date).getTime()
+          );
+
+          investmentOldest = new Date(sortedTransactions[0].date);
+          investmentNewest = new Date(sortedTransactions[sortedTransactions.length - 1].date);
+
+          // Atualiza dados globais
+          if (!oldestDate || investmentOldest < oldestDate) {
+            oldestDate = investmentOldest;
+          }
+          if (!newestDate || investmentNewest > newestDate) {
+            newestDate = investmentNewest;
+          }
+
+          totalTransactions += transactions.length;
+        }
+
+        coverageByInvestment.push({
+          investmentName: investment.name,
+          investmentId: investment.id,
+          oldestTransaction: investmentOldest,
+          newestTransaction: investmentNewest,
+          transactionCount: transactions.length
+        });
+      }
+
+      // Log dos resultados
+      console.log('\n📈 === RESULTADO DA ANÁLISE ===');
+      console.log(`📅 Data mais antiga: ${oldestDate ? oldestDate.toLocaleDateString('pt-BR') : 'N/A'}`);
+      console.log(`📅 Data mais recente: ${newestDate ? newestDate.toLocaleDateString('pt-BR') : 'N/A'}`);
+      console.log(`📊 Total de transações: ${totalTransactions}`);
+      
+      if (oldestDate && newestDate) {
+        const daysDifference = Math.ceil((newestDate.getTime() - oldestDate.getTime()) / (1000 * 60 * 60 * 24));
+        console.log(`⏰ Período coberto: ${daysDifference} dias`);
+      }
+
+      console.log('\n📋 === COBERTURA POR INVESTIMENTO ===');
+      coverageByInvestment
+        .filter(item => item.transactionCount > 0)
+        .sort((a, b) => b.transactionCount - a.transactionCount)
+        .forEach((item, index) => {
+          console.log(`${index + 1}. ${item.investmentName}`);
+          console.log(`   📅 Período: ${item.oldestTransaction?.toLocaleDateString('pt-BR')} até ${item.newestTransaction?.toLocaleDateString('pt-BR')}`);
+          console.log(`   📊 Transações: ${item.transactionCount}`);
+        });
+
+      const investmentsWithoutTransactions = coverageByInvestment.filter(item => item.transactionCount === 0);
+      if (investmentsWithoutTransactions.length > 0) {
+        console.log('\n⚠️ === INVESTIMENTOS SEM TRANSAÇÕES ===');
+        investmentsWithoutTransactions.forEach((item, index) => {
+          console.log(`${index + 1}. ${item.investmentName}`);
+        });
+      }
+
+      return {
+        oldestTransactionDate: oldestDate,
+        newestTransactionDate: newestDate,
+        totalTransactions,
+        coverageByInvestment
+      };
+
+    } catch (error) {
+      console.error('❌ Erro ao analisar cobertura de dados:', error);
+      throw error;
+    }
+  }
+
 }

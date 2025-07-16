@@ -10,7 +10,9 @@ import type {
   Investment,
   Account,
   InvestmentListResponse,
-  AccountListResponse
+  AccountListResponse,
+  InvestmentTransaction,
+  InvestmentTransactionListResponse
 } from './PluggyTypes.js';
 
 export class PluggyClient {
@@ -198,5 +200,70 @@ export class PluggyClient {
     console.log(`💎 Valor total em investimentos: R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
 
     return allInvestments;
+  }
+
+  /**
+   * Busca o histórico de transações de um investimento específico
+   * NOVA FUNCIONALIDADE - Para cálculo de preço médio
+   */
+  async getInvestmentTransactions(investmentId: string): Promise<InvestmentTransaction[]> {
+    const apiKey = await this.authenticate();
+
+    console.log(`📈 Buscando transações do investimento ${investmentId}...`);
+
+    try {
+      const response = await fetch(`${this.config.baseUrl}/investments/${investmentId}/transactions`, {
+        headers: {
+          'X-API-KEY': apiKey,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro ao buscar transações: ${response.status}`);
+      }
+
+      const data: InvestmentTransactionListResponse = await response.json();
+      console.log(`✅ Encontradas ${data.results.length} transações`);
+      
+      // Log detalhado das transações encontradas
+      data.results.forEach((transaction, index) => {
+        console.log(`  ${index + 1}. ${transaction.type}: ${transaction.quantity} x R$ ${transaction.value.toFixed(2)} = R$ ${transaction.amount.toFixed(2)} (${transaction.date})`);
+      });
+
+      return data.results;
+
+    } catch (error) {
+      console.error('❌ Erro ao buscar transações:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Busca transações de todos os investimentos de um item
+   * Para análise completa de portfolio
+   */
+  async getAllInvestmentTransactions(itemIds: string[]): Promise<Map<string, InvestmentTransaction[]>> {
+    console.log(`🎯 Coletando transações de investimentos...`);
+
+    const transactionsByInvestment = new Map<string, InvestmentTransaction[]>();
+
+    // Primeiro, pega todos os investimentos
+    const allInvestments = await this.getAllInvestments(itemIds);
+
+    // Para cada investimento, busca suas transações
+    for (const investment of allInvestments) {
+      try {
+        const transactions = await this.getInvestmentTransactions(investment.id);
+        if (transactions.length > 0) {
+          transactionsByInvestment.set(investment.id, transactions);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Erro ao buscar transações do investimento ${investment.name}:`, error);
+        // Continua com os outros investimentos mesmo se um falhar
+      }
+    }
+
+    console.log(`🎉 Total de investimentos com transações: ${transactionsByInvestment.size}`);
+    return transactionsByInvestment;
   }
 }

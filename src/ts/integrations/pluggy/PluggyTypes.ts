@@ -152,6 +152,56 @@ export interface PluggyError {
   details?: any;
 }
 
+// ===== TRANSAÇÕES DE INVESTIMENTO =====
+export interface InvestmentTransaction {
+  id?: string;
+  type: 'BUY' | 'SELL' | 'TAX' | 'TRANSFER' | 'DIVIDEND';
+  date: string;
+  tradeDate?: string;
+  quantity: number;
+  value: number;           // Preço unitário
+  amount: number;          // Valor total da operação
+  description?: string;
+  brokerageNumber?: string;
+  netAmount?: number;
+  agreedRate?: number;
+  expenses?: {
+    serviceTax?: number;
+    brokerageFee?: number;
+    incomeTax?: number;
+    other?: number;
+    tradingAssetsNoticeFee?: number;
+    maintenanceFee?: number;
+    settlementFee?: number;
+    clearingFee?: number;
+    stockExchangeFee?: number;
+    custodyFee?: number;
+    operatingFee?: number;
+  };
+}
+
+export interface InvestmentTransactionListResponse {
+  total: number;
+  totalPages: number;
+  page: number;
+  results: InvestmentTransaction[];
+}
+
+// ===== CÁLCULO DE PREÇO MÉDIO =====
+export interface AveragePriceCalculation {
+  stockCode: string;
+  stockName: string;
+  averagePrice: number;
+  totalQuantity: number;
+  totalInvested: number;
+  currentPrice: number;
+  currentValue: number;
+  gainLoss: number;
+  gainLossPercent: number;
+  transactions: InvestmentTransaction[];
+  lastUpdated: string;
+}
+
 // ===== RESUMO DO PORTFOLIO =====
 export interface PortfolioSummary {
   totalBalance: number;

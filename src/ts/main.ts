@@ -9,6 +9,7 @@ import { ENVIRONMENT_CONFIG } from '../config/environment.js';
 import { BinanceInvestmentCollector } from './integrations/binance/BinanceInvestmentCollector.js';
 import { BINANCE_CONFIG, validateBinanceConfig } from '../config/binance.js';
 import { StateManager } from './utils/StateManager.js';
+import { AveragePriceCalculator } from './utils/AveragePriceCalculator.js';
 
 /**
  * Configuração da aplicação
@@ -1009,6 +1010,135 @@ class PortfolioApp {
       }, 1500);
     }
   }
+
+  /**
+   * NOVA FUNCIONALIDADE: Calcula preços médios das ações
+   * Implementa exatamente o que você pediu: busca transações e calcula preço médio
+   */
+  async calculateAveragePrices(): Promise<void> {
+    console.log('🚀 Iniciando cálculo de preços médios...');
+
+    try {
+      this.showStatus('Calculando preços médios das ações...', true);
+
+      // Verifica se tem investimentos carregados
+      if (this.currentInvestments.length === 0) {
+        console.warn('⚠️ Nenhum investimento encontrado. Execute collectInvestments() primeiro.');
+        this.showError('Execute collectInvestments() primeiro para carregar os dados');
+        return;
+      }
+
+      // Filtra apenas ações
+      const stockInvestments = this.currentInvestments.filter(inv => 
+        inv.type === 'EQUITY' && 
+        inv.subtype === 'STOCK' &&
+        inv.quantity > 0
+      );
+
+      if (stockInvestments.length === 0) {
+        console.warn('⚠️ Nenhuma ação encontrada no portfolio');
+        this.showError('Nenhuma ação encontrada no portfolio');
+        return;
+      }
+
+      console.log(`📊 Encontradas ${stockInvestments.length} ações para análise`);
+
+      // Busca transações de todos os investimentos
+      console.log('📈 Buscando histórico de transações...');
+      const transactionsByInvestment = await this.collector.getAllInvestmentTransactions(APP_CONFIG.connectedItems);
+
+      // Calcula preços médios
+      console.log('🔢 Calculando preços médios...');
+      const averagePriceCalculations = AveragePriceCalculator.calculateMultipleAverages(
+        stockInvestments, 
+        transactionsByInvestment
+      );
+
+      // Gera resumo do portfolio de ações
+      const portfolioSummary = AveragePriceCalculator.generatePortfolioSummary(averagePriceCalculations);
+
+      // Exibe resultados no console
+      console.log('\n🎉 === RESULTADO DO CÁLCULO DE PREÇOS MÉDIOS ===');
+      console.log(`📊 Total de ações analisadas: ${portfolioSummary.totalStocks}`);
+      console.log(`💰 Total investido: R$ ${portfolioSummary.totalInvested.toFixed(2)}`);
+      console.log(`💎 Valor atual: R$ ${portfolioSummary.totalCurrentValue.toFixed(2)}`);
+      console.log(`${portfolioSummary.totalGainLoss >= 0 ? '📈' : '📉'} Resultado geral: R$ ${portfolioSummary.totalGainLoss.toFixed(2)} (${portfolioSummary.totalGainLossPercent.toFixed(2)}%)`);
+      console.log(`🏆 Ações em alta: ${portfolioSummary.winners}`);
+      console.log(`📉 Ações em baixa: ${portfolioSummary.losers}`);
+
+      if (portfolioSummary.topWinner) {
+        console.log(`🥇 Melhor performance: ${portfolioSummary.topWinner.stockName} (+${portfolioSummary.topWinner.gainLossPercent.toFixed(2)}%)`);
+      }
+
+      if (portfolioSummary.topLoser) {
+        console.log(`🥴 Pior performance: ${portfolioSummary.topLoser.stockName} (${portfolioSummary.topLoser.gainLossPercent.toFixed(2)}%)`);
+      }
+
+      // Mostra detalhes de cada ação
+      console.log('\n📋 === DETALHES POR AÇÃO ===');
+      averagePriceCalculations.forEach((calc, index) => {
+        console.log(`\n${index + 1}. ${calc.stockName} (${calc.stockCode})`);
+        console.log(`   💰 Preço médio: R$ ${calc.averagePrice.toFixed(2)}`);
+        console.log(`   📈 Preço atual: R$ ${calc.currentPrice.toFixed(2)}`);
+        console.log(`   🔢 Quantidade: ${calc.totalQuantity}`);
+        console.log(`   💵 Investido: R$ ${calc.totalInvested.toFixed(2)}`);
+        console.log(`   💎 Valor atual: R$ ${calc.currentValue.toFixed(2)}`);
+        console.log(`   ${calc.gainLoss >= 0 ? '📈' : '📉'} Resultado: R$ ${calc.gainLoss.toFixed(2)} (${calc.gainLossPercent.toFixed(2)}%)`);
+        console.log(`   📊 Transações: ${calc.transactions.length}`);
+      });
+
+      this.showStatus('', false);
+      this.showSuccess(`✅ Preços médios calculados para ${averagePriceCalculations.length} ações!`);
+
+      // Salva os dados calculados globalmente para acesso fácil
+      (window as any).averagePrices = averagePriceCalculations;
+      (window as any).portfolioSummary = portfolioSummary;
+
+      console.log('\n💡 Dica: Use (window as any).averagePrices para acessar os dados calculados');
+
+    } catch (error) {
+      console.error('❌ Erro ao calcular preços médios:', error);
+      this.showError('Erro ao calcular preços médios: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
+      this.showStatus('', false);
+    }
+  }
+
+  /**
+   * NOVA FUNCIONALIDADE: Analisa cobertura histórica de dados
+   * Verifica qual é a data limite para coleta de transações da Pluggy
+   */
+  async analyzeDataCoverage(): Promise<void> {
+    console.log('📊 Iniciando análise de cobertura histórica...');
+
+    try {
+      this.showStatus('Analisando cobertura de dados históricos...', true);
+
+      // Verifica se tem investimentos carregados
+      if (this.currentInvestments.length === 0) {
+        console.warn('⚠️ Nenhum investimento encontrado. Execute collectInvestments() primeiro.');
+        this.showError('Execute collectInvestments() primeiro para carregar os dados');
+        return;
+      }
+
+      console.log(`📈 Analisando cobertura para ${this.currentInvestments.length} investimentos...`);
+
+      // Analisa cobertura histórica
+      const coverage = await this.collector.analyzeDataCoverage(APP_CONFIG.connectedItems);
+
+      // Salva dados globalmente
+      (window as any).dataCoverage = coverage;
+
+      this.showStatus('', false);
+      this.showSuccess(`✅ Análise de cobertura concluída! Período: ${coverage.oldestTransactionDate?.toLocaleDateString('pt-BR')} - ${coverage.newestTransactionDate?.toLocaleDateString('pt-BR')}`);
+
+      console.log('\n💡 Dica: Use (window as any).dataCoverage para acessar os dados de cobertura');
+
+    } catch (error) {
+      console.error('❌ Erro ao analisar cobertura:', error);
+      this.showError('Erro ao analisar cobertura: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
+      this.showStatus('', false);
+    }
+  }
 }
 
 /**
@@ -1022,8 +1152,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Expõe funções globais para debug
     (window as any).app = app;
     (window as any).collectInvestments = () => app.collectInvestments();
+    (window as any).calculateAveragePrices = () => app.calculateAveragePrices();
+    (window as any).analyzeDataCoverage = () => app.analyzeDataCoverage();
 
     console.log('🎯 Digite collectInvestments() no console para coletar dados');
+    console.log('📈 Digite calculateAveragePrices() no console para calcular preços médios');
+    console.log('📊 Digite analyzeDataCoverage() no console para analisar cobertura histórica');
 
   } catch (error) {
     console.error('❌ Erro fatal na inicialização:', error);
