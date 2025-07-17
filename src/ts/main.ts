@@ -1134,8 +1134,73 @@ class PortfolioApp {
       console.log('\n💡 Dica: Use (window as any).dataCoverage para acessar os dados de cobertura');
 
     } catch (error) {
-      console.error('❌ Erro ao analisar cobertura:', error);
+      console.log('❌ Erro ao analisar cobertura:', error);
       this.showError('Erro ao analisar cobertura: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
+      this.showStatus('', false);
+    }
+  }
+
+  /**
+   * NOVA FUNCIONALIDADE: Calcula preços médios dos ativos Binance
+   * Implementa o mesmo algoritmo usado para Pluggy
+   */
+  async calculateBinanceAveragePrices(): Promise<void> {
+    console.log('🟠 Iniciando cálculo de preços médios Binance...');
+
+    if (!this.binanceCollector) {
+      this.showError('Binance não configurado. Configure suas credenciais no arquivo .env');
+      return;
+    }
+
+    try {
+      this.showStatus('Calculando preços médios Binance...', true);
+
+      // Calcula preços médios
+      const binanceCalculations = await this.binanceCollector.calculateAveragePrices();
+
+      // Salva os dados calculados globalmente para acesso fácil
+      (window as any).binanceAveragePrices = binanceCalculations;
+
+      this.showStatus('', false);
+      this.showSuccess(`✅ Preços médios Binance calculados para ${binanceCalculations.length} ativos!`);
+
+      console.log('\n💡 Dica: Use (window as any).binanceAveragePrices para acessar os dados calculados');
+
+    } catch (error) {
+      console.error('❌ Erro ao calcular preços médios Binance:', error);
+      this.showError('Erro ao calcular preços médios Binance: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
+      this.showStatus('', false);
+    }
+  }
+
+  /**
+   * NOVA FUNCIONALIDADE: Investigação detalhada de transações
+   * Analisa por que algumas ações não têm histórico de transações
+   */
+  async investigateTransactionIssues(): Promise<void> {
+    console.log('🔍 Iniciando investigação detalhada de transações...');
+
+    try {
+      this.showStatus('Investigando problemas de transações...', true);
+
+      // Verifica se tem investimentos carregados
+      if (this.currentInvestments.length === 0) {
+        console.warn('⚠️ Nenhum investimento encontrado. Execute collectInvestments() primeiro.');
+        this.showError('Execute collectInvestments() primeiro para carregar os dados');
+        return;
+      }
+
+      console.log(`🔍 Investigando ${this.currentInvestments.length} investimentos...`);
+
+      // Executa investigação detalhada
+      await this.collector.investigateTransactionIssues(APP_CONFIG.connectedItems);
+
+      this.showStatus('', false);
+      this.showSuccess('✅ Investigação concluída! Verifique o console para detalhes.');
+
+    } catch (error) {
+      console.error('❌ Erro na investigação:', error);
+      this.showError('Erro na investigação: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
       this.showStatus('', false);
     }
   }
@@ -1153,11 +1218,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     (window as any).app = app;
     (window as any).collectInvestments = () => app.collectInvestments();
     (window as any).calculateAveragePrices = () => app.calculateAveragePrices();
+    (window as any).calculateBinanceAveragePrices = () => app.calculateBinanceAveragePrices();
     (window as any).analyzeDataCoverage = () => app.analyzeDataCoverage();
+    (window as any).investigateTransactionIssues = () => app.investigateTransactionIssues();
+    (window as any).checkStorageDebug = () => StateManager.getDebugInfo();
 
     console.log('🎯 Digite collectInvestments() no console para coletar dados');
-    console.log('📈 Digite calculateAveragePrices() no console para calcular preços médios');
+    console.log('📈 Digite calculateAveragePrices() no console para calcular preços médios (Pluggy)');
+    console.log('🟠 Digite calculateBinanceAveragePrices() no console para calcular preços médios (Binance)');
     console.log('📊 Digite analyzeDataCoverage() no console para analisar cobertura histórica');
+    console.log('🔍 Digite investigateTransactionIssues() no console para investigar problemas');
+    console.log('🛠️ Digite checkStorageDebug() no console para verificar estado do localStorage');
 
   } catch (error) {
     console.error('❌ Erro fatal na inicialização:', error);

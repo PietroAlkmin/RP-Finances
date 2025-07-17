@@ -255,3 +255,29 @@ export interface BinanceError {
   code: number;
   msg: string;
 }
+
+// ===== TIPOS PARA CÁLCULO DE PREÇO MÉDIO =====
+export interface BinanceTransaction {
+  symbol: string;
+  type: 'BUY' | 'SELL' | 'DEPOSIT' | 'WITHDRAW';
+  quantity: number;
+  price: number;
+  amount: number;
+  date: string;
+  id: string;
+  source: 'TRADE' | 'DEPOSIT' | 'WITHDRAW' | 'CONVERT';
+}
+
+export interface BinanceAveragePriceCalculation {
+  symbol: string;
+  asset: string;
+  averagePrice: number;
+  totalInvested: number;
+  totalQuantity: number;
+  currentPrice: number;
+  currentValue: number;
+  profit: number;
+  profitPercentage: number;
+  transactionCount: number;
+  transactions: BinanceTransaction[];
+}

@@ -91,7 +91,8 @@ export class BinanceClient {
     method: 'GET' | 'POST' | 'DELETE',
     endpoint: string,
     params: Record<string, any> = {},
-    requiresAuth: boolean = false
+    requiresAuth: boolean = false,
+    retryCount: number = 0
   ): Promise<T> {
     // Constrói URL completa concatenando baseUrl + endpoint
     const fullUrl = `${this.baseUrl}${endpoint}`;
@@ -136,6 +137,14 @@ export class BinanceClient {
         }));
         
         console.error('❌ Binance API Error:', errorData);
+        
+        // Se é erro de timestamp e ainda não tentamos resincronia, tenta novamente
+        if (errorData.code === -1021 && retryCount === 0) {
+          console.log('⏰ Binance: Erro de timestamp detectado, ressincronizando...');
+          await this.syncServerTime();
+          return this.makeRequest<T>(method, endpoint, params, requiresAuth, retryCount + 1);
+        }
+        
         throw new Error(`Binance API Error ${errorData.code}: ${errorData.msg}`);
       }
 
@@ -191,6 +200,14 @@ export class BinanceClient {
    */
   async getWithdrawHistory(options: GetWithdrawHistoryOptions = {}): Promise<WithdrawHistory[]> {
     return this.makeRequest<WithdrawHistory[]>('GET', '/sapi/v1/capital/withdraw/history', options, true);
+  }
+
+  /**
+   * Obtém histórico de conversões (Convert Trade Flow)
+   * IMPORTANTE: Este endpoint pode conter suas compras de Bitcoin via Binance Convert!
+   */
+  async getConvertTradeFlow(options: { startTime?: number; endTime?: number; limit?: number } = {}): Promise<any[]> {
+    return this.makeRequest<any[]>('GET', '/sapi/v1/convert/tradeFlow', options, true);
   }
 
   /**

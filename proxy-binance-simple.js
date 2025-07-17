@@ -191,12 +191,17 @@ app.get('/api/binance/api/v3/myTrades', addBinanceAuth, async (req, res) => {
   try {
     const url = new URL('/api/v3/myTrades', BINANCE_BASE_URL);
     
-    // Adiciona query parameters
-    Object.keys(req.query).forEach(key => {
-      url.searchParams.append(key, req.query[key]);
+    console.log(`🔍 Debug myTrades - req.binanceQuery:`, req.binanceQuery);
+    console.log(`🔍 Debug myTrades - signature em binanceQuery:`, req.binanceQuery.signature ? 'PRESENTE' : 'AUSENTE');
+    
+    // Adiciona query parameters incluindo a assinatura gerada pelo middleware
+    Object.keys(req.binanceQuery).forEach(key => {
+      url.searchParams.append(key, req.binanceQuery[key]);
+      console.log(`🔍 myTrades - Adicionando param: ${key} = ${req.binanceQuery[key].substring ? req.binanceQuery[key].substring(0, 16) + '...' : req.binanceQuery[key]}`);
     });
     
     console.log(`🌐 Proxy Binance: GET ${url.toString()}`);
+    console.log(`🔐 myTrades - Query params incluem signature: ${url.searchParams.has('signature')}`);
     
     const response = await fetch(url.toString(), {
       method: 'GET',
@@ -210,11 +215,125 @@ app.get('/api/binance/api/v3/myTrades', addBinanceAuth, async (req, res) => {
       return res.status(response.status).json(data);
     }
     
-    console.log('✅ Binance API Success');
+    console.log('✅ myTrades Binance API Success');
     res.json(data);
     
   } catch (error) {
-    console.error('❌ Proxy Error:', error);
+    console.error('❌ myTrades Proxy Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Deposit history endpoint (com auth)
+app.get('/api/binance/sapi/v1/capital/deposit/hisrec', addBinanceAuth, async (req, res) => {
+  try {
+    const url = new URL('/sapi/v1/capital/deposit/hisrec', BINANCE_BASE_URL);
+    
+    console.log(`🔍 Debug depositHistory - req.binanceQuery:`, req.binanceQuery);
+    console.log(`🔍 Debug depositHistory - signature em binanceQuery:`, req.binanceQuery.signature ? 'PRESENTE' : 'AUSENTE');
+    
+    // Adiciona query parameters incluindo a assinatura gerada pelo middleware
+    Object.keys(req.binanceQuery).forEach(key => {
+      url.searchParams.append(key, req.binanceQuery[key]);
+      console.log(`🔍 depositHistory - Adicionando param: ${key} = ${req.binanceQuery[key].substring ? req.binanceQuery[key].substring(0, 16) + '...' : req.binanceQuery[key]}`);
+    });
+    
+    console.log(`🌐 Proxy Binance: GET ${url.toString()}`);
+    console.log(`🔐 depositHistory - Query params incluem signature: ${url.searchParams.has('signature')}`);
+    
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: req.binanceHeaders
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      console.error('❌ Binance API Error:', data);
+      return res.status(response.status).json(data);
+    }
+    
+    console.log('✅ depositHistory Binance API Success');
+    res.json(data);
+    
+  } catch (error) {
+    console.error('❌ depositHistory Proxy Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Withdrawal history endpoint (com auth)
+app.get('/api/binance/sapi/v1/capital/withdraw/history', addBinanceAuth, async (req, res) => {
+  try {
+    const url = new URL('/sapi/v1/capital/withdraw/history', BINANCE_BASE_URL);
+    
+    console.log(`🔍 Debug withdrawHistory - req.binanceQuery:`, req.binanceQuery);
+    console.log(`🔍 Debug withdrawHistory - signature em binanceQuery:`, req.binanceQuery.signature ? 'PRESENTE' : 'AUSENTE');
+    
+    // Adiciona query parameters incluindo a assinatura gerada pelo middleware
+    Object.keys(req.binanceQuery).forEach(key => {
+      url.searchParams.append(key, req.binanceQuery[key]);
+      console.log(`🔍 withdrawHistory - Adicionando param: ${key} = ${req.binanceQuery[key].substring ? req.binanceQuery[key].substring(0, 16) + '...' : req.binanceQuery[key]}`);
+    });
+    
+    console.log(`🌐 Proxy Binance: GET ${url.toString()}`);
+    console.log(`🔐 withdrawHistory - Query params incluem signature: ${url.searchParams.has('signature')}`);
+    
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: req.binanceHeaders
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      console.error('❌ Binance API Error:', data);
+      return res.status(response.status).json(data);
+    }
+    
+    console.log('✅ withdrawHistory Binance API Success');
+    res.json(data);
+    
+  } catch (error) {
+    console.error('❌ withdrawHistory Proxy Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Convert trade flow endpoint (com auth) - ESTE É ONDE SUAS COMPRAS PODEM ESTAR!
+app.get('/api/binance/sapi/v1/convert/tradeFlow', addBinanceAuth, async (req, res) => {
+  try {
+    const url = new URL('/sapi/v1/convert/tradeFlow', BINANCE_BASE_URL);
+    
+    console.log(`🔍 Debug convertTradeFlow - req.binanceQuery:`, req.binanceQuery);
+    console.log(`🔍 Debug convertTradeFlow - signature em binanceQuery:`, req.binanceQuery.signature ? 'PRESENTE' : 'AUSENTE');
+    
+    // Adiciona query parameters incluindo a assinatura gerada pelo middleware
+    Object.keys(req.binanceQuery).forEach(key => {
+      url.searchParams.append(key, req.binanceQuery[key]);
+      console.log(`🔍 convertTradeFlow - Adicionando param: ${key} = ${req.binanceQuery[key].substring ? req.binanceQuery[key].substring(0, 16) + '...' : req.binanceQuery[key]}`);
+    });
+    
+    console.log(`🌐 Proxy Binance: GET ${url.toString()}`);
+    console.log(`🔐 convertTradeFlow - Query params incluem signature: ${url.searchParams.has('signature')}`);
+    
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: req.binanceHeaders
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      console.error('❌ Binance API Error:', data);
+      return res.status(response.status).json(data);
+    }
+    
+    console.log('✅ convertTradeFlow Binance API Success');
+    res.json(data);
+    
+  } catch (error) {
+    console.error('❌ convertTradeFlow Proxy Error:', error);
     res.status(500).json({ error: error.message });
   }
 });

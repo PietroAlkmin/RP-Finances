@@ -335,4 +335,95 @@ export class InvestmentCollector {
     }
   }
 
+  /**
+   * NOVA FUNCIONALIDADE: Investigação detalhada de transações
+   * Analisa TODOS os tipos de transações para entender por que algumas ações não têm histórico
+   */
+  async investigateTransactionIssues(itemIds: string[]): Promise<void> {
+    console.log('🔍 === INVESTIGAÇÃO DETALHADA DE TRANSAÇÕES ===');
+
+    try {
+      // Busca todas as transações
+      const transactionsByInvestment = await this.client.getAllInvestmentTransactions(itemIds);
+      
+      // Busca informações dos investimentos
+      const allInvestments = await this.client.getAllInvestments(itemIds);
+      
+      console.log('\n📊 === ANÁLISE DETALHADA POR INVESTIMENTO ===');
+      
+      for (const investment of allInvestments) {
+        const transactions = transactionsByInvestment.get(investment.id) || [];
+        
+        console.log(`\n📈 ${investment.name} (${investment.type})`);
+        console.log(`   🆔 ID: ${investment.id}`);
+        console.log(`   💰 Saldo atual: R$ ${investment.balance.toFixed(2)}`);
+        console.log(`   🔢 Quantidade: ${investment.quantity || 'N/A'}`);
+        console.log(`   📊 Transações encontradas: ${transactions.length}`);
+        
+        if (transactions.length > 0) {
+          console.log('   📋 Detalhes das transações:');
+          
+          // Agrupa por tipo de transação
+          const transactionTypes = new Map<string, number>();
+          transactions.forEach(tx => {
+            transactionTypes.set(tx.type, (transactionTypes.get(tx.type) || 0) + 1);
+          });
+          
+          transactionTypes.forEach((count, type) => {
+            console.log(`      ${type}: ${count} transação(ões)`);
+          });
+          
+          // Mostra primeiras e últimas transações
+          const sortedTx = transactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+          console.log(`   📅 Primeira: ${sortedTx[0].type} em ${new Date(sortedTx[0].date).toLocaleDateString('pt-BR')}`);
+          console.log(`   📅 Última: ${sortedTx[sortedTx.length - 1].type} em ${new Date(sortedTx[sortedTx.length - 1].date).toLocaleDateString('pt-BR')}`);
+          
+        } else {
+          console.log('   ⚠️ NENHUMA TRANSAÇÃO ENCONTRADA!');
+          
+          // Dados adicionais para investigação
+          console.log('   🔍 Dados para investigação:');
+          console.log(`      📊 Valor original: R$ ${(investment.amountOriginal || 0).toFixed(2)}`);
+          console.log(`      📈 Lucro/Prejuízo: R$ ${(investment.amountProfit || 0).toFixed(2)}`);
+          console.log(`      📅 Data de referência: ${investment.date ? new Date(investment.date).toLocaleDateString('pt-BR') : 'N/A'}`);
+          console.log(`      🏦 Instituição: ${investment.institution?.name || 'N/A'}`);
+          console.log(`      🆔 Número: ${investment.number || 'N/A'}`);
+          console.log(`      🔖 Código: ${investment.code || 'N/A'}`);
+          
+          // Verifica se tem valor mas não tem transações
+          if (investment.balance > 0 && investment.quantity && investment.quantity > 0) {
+            const impliedPrice = investment.balance / investment.quantity;
+            console.log(`      💡 Preço implícito: R$ ${impliedPrice.toFixed(2)} (baseado em saldo/quantidade)`);
+            console.log('      🤔 Possíveis causas:');
+            console.log('         - Transação anterior ao período coberto pela API');
+            console.log('         - Transferência de outra corretora');
+            console.log('         - Tipo de operação não rastreada');
+            console.log('         - Problema de sincronização específico');
+          }
+        }
+      }
+      
+      // Resumo das possíveis causas
+      console.log('\n🎯 === RESUMO DA INVESTIGAÇÃO ===');
+      const withTransactions = allInvestments.filter(inv => (transactionsByInvestment.get(inv.id) || []).length > 0);
+      const withoutTransactions = allInvestments.filter(inv => (transactionsByInvestment.get(inv.id) || []).length === 0);
+      
+      console.log(`✅ Com transações: ${withTransactions.length} investimentos`);
+      console.log(`❌ Sem transações: ${withoutTransactions.length} investimentos`);
+      
+      if (withoutTransactions.length > 0) {
+        console.log('\n💡 === HIPÓTESES PARA INVESTIGAR ===');
+        console.log('1. 🏦 Diferentes corretoras: Verifique se essas ações foram compradas em outra corretora');
+        console.log('2. 📅 Período anterior: Transações podem ser de antes de julho/2024');
+        console.log('3. 🔄 Transferências: Ações podem ter vindo de transferência entre corretoras');
+        console.log('4. 🎁 Aquisições especiais: Bonificações, desdobramentos, ou outras operações corporativas');
+        console.log('5. 🔧 Sincronização: Problema técnico específico com esses ativos');
+      }
+
+    } catch (error) {
+      console.error('❌ Erro na investigação:', error);
+      throw error;
+    }
+  }
+
 }
