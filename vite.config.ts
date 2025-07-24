@@ -15,6 +15,9 @@ export default defineConfig({
   // Diretório raiz do projeto
   root: './src',
   
+  // Diretório onde estão os arquivos .env (diretório raiz do projeto)
+  envDir: '../',
+  
   // Definir variáveis globais para evitar erros de Node.js no browser
   define: {
     global: 'globalThis',
