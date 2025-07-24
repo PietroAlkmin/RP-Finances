@@ -4,7 +4,14 @@ Bem-vindo à documentação técnica do projeto RP-Finances!
 
 ## 📋 Índice de Documentos
 
-### 🔧 [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
+### � [DEVELOPMENT_STATUS.md](./DEVELOPMENT_STATUS.md)
+**Status atual do desenvolvimento:**
+- Estado do projeto e funcionalidades implementadas
+- Problemas resolvidos e desafios atuais
+- Próximas ações e roadmap
+- Métricas de progresso e insights
+
+### �🔧 [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
 Guia completo para resolver problemas comuns:
 - Erros de ambiente e configuração
 - Problemas com APIs (Binance/Pluggy) 
