@@ -10,6 +10,8 @@ import { BinanceInvestmentCollector } from './integrations/binance/BinanceInvest
 import { BINANCE_CONFIG, validateBinanceConfig } from '../config/binance.js';
 import { StateManager } from './utils/StateManager.js';
 import { AveragePriceCalculator } from './utils/AveragePriceCalculator.js';
+import { DashboardManager } from './ui/DashboardManager.js';
+import { NavigationManager } from './ui/NavigationManager.js';
 
 /**
  * Configuração da aplicação
@@ -29,9 +31,14 @@ class PortfolioApp {
   private collector: InvestmentCollector;
   private binanceCollector: BinanceInvestmentCollector | null = null;
   private currentInvestments: Investment[] = [];
+  private dashboardManager: DashboardManager | null = null;
+  private navigationManager: NavigationManager;
 
   constructor() {
     this.collector = new InvestmentCollector(APP_CONFIG.pluggy);
+    
+    // Inicializar sistema de navegação
+    this.navigationManager = new NavigationManager();
     
     // Inicializar Binance se configurado
     if (validateBinanceConfig()) {
@@ -218,6 +225,9 @@ class PortfolioApp {
     // Atualiza análise do portfolio
     this.updatePortfolioAnalysis(summary);
 
+    // Inicializa dashboard moderno se disponível
+    this.initializeModernDashboard();
+
     // Atualiza timestamp
     this.updateLastUpdateTime();
 
@@ -227,9 +237,46 @@ class PortfolioApp {
     console.log(`📈 Resultado: R$ ${summary.totalProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${summary.profitPercentage.toFixed(2)}%)`);
     console.log(`📊 Rentabilidade Média: ${summary.averageAnnualRate.toFixed(2)}% ao ano`);
     console.log(`🧾 Impostos Totais: R$ ${summary.totalTaxes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
+  }
 
-    // Atualiza análise do portfólio
-    this.updatePortfolioAnalysis(summary);
+  /**
+   * NOVA FUNCIONALIDADE: Inicializa Dashboard Moderno estilo NexaVerse
+   */
+  private async initializeModernDashboard(): Promise<void> {
+    if (this.currentInvestments.length === 0) return;
+
+    try {
+      console.log('🎨 Inicializando dashboard moderno...');
+
+      // Procura pelo container de portfolio na estrutura de navegação
+      let portfolioContent = document.getElementById('portfolio-content');
+      
+      if (!portfolioContent) {
+        // Se não existe, cria a tela de portfolio
+        this.navigationManager.createScreen('portfolio');
+        portfolioContent = document.getElementById('portfolio-content');
+      }
+
+      if (portfolioContent) {
+        // Inicializa o dashboard manager se ainda não foi criado
+        if (!this.dashboardManager) {
+          this.dashboardManager = new DashboardManager({
+            enableAnimations: true,
+            autoRefresh: false,
+            refreshInterval: 300,
+            theme: 'light'
+          });
+        }
+
+        // Inicializa com os dados atuais
+        await this.dashboardManager.initializeDashboard(this.currentInvestments);
+        
+        console.log('✨ Dashboard moderno inicializado com sucesso!');
+      }
+
+    } catch (error) {
+      console.error('❌ Erro ao inicializar dashboard moderno:', error);
+    }
   }
 
   /**
@@ -1222,6 +1269,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     (window as any).analyzeDataCoverage = () => app.analyzeDataCoverage();
     (window as any).investigateTransactionIssues = () => app.investigateTransactionIssues();
     (window as any).checkStorageDebug = () => StateManager.getDebugInfo();
+    
+    // Disponibilizar NavigationManager globalmente
+    (window as any).navigationManager = app['navigationManager'];
 
     console.log('🎯 Digite collectInvestments() no console para coletar dados');
     console.log('📈 Digite calculateAveragePrices() no console para calcular preços médios (Pluggy)');
@@ -1234,3 +1284,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error('❌ Erro fatal na inicialização:', error);
   }
 });
+
+// Tornar NavigationManager acessível globalmente
+declare global {
+  interface Window {
+    navigationManager: NavigationManager;
+  }
+}

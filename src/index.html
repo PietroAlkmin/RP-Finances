@@ -35,109 +35,126 @@
         .border-primary { border-color: var(--border-primary); }
     </style>
 </head>
-<body class="h-full antialiased">
-    <!-- Container principal da aplicação -->
-    <div id="app" class="min-h-screen">
+<body class="h-full antialiased bg-gray-50">
+    <!-- Container principal da aplicação com sidebar -->
+    <div id="app" class="flex min-h-screen">
         
-        <!-- Header premium com design LinéaCore -->
-        <header class="relative hero-gradient">
-            <div class="absolute inset-0 bg-gradient-to-r from-purple-900/20 via-blue-900/20 to-indigo-900/20"></div>
-            <div class="relative z-10">
-                <nav class="glass-card mx-4 mt-4 px-8 py-4">
-                    <div class="flex items-center justify-between max-w-7xl mx-auto">
-                        <!-- Logo e título -->
-                        <div class="flex items-center space-x-4">
-                            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-                                <span class="text-white font-bold text-xl">💎</span>
+        <!-- Sidebar será inserida aqui pelo NavigationManager -->
+        
+        <!-- Conteúdo principal -->
+        <div id="main-content" class="flex-1 ml-64 transition-all duration-300">
+            
+            <!-- Tela de Accounts (conteúdo original) -->
+            <div id="accounts-screen" class="min-h-screen">
+                <!-- Header premium com design LinéaCore -->
+                <header class="relative hero-gradient">
+                    <div class="absolute inset-0 bg-gradient-to-r from-purple-900/20 via-blue-900/20 to-indigo-900/20"></div>
+                    <div class="relative z-10 p-6">
+                        <div class="glass-card px-8 py-6">
+                            <div class="flex items-center justify-between max-w-7xl mx-auto">
+                                <!-- Título da página -->
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                                        <span class="text-white font-bold text-xl">🏦</span>
+                                    </div>
+                                    <div>
+                                        <h1 class="text-3xl font-bold text-white">Accounts</h1>
+                                        <p class="text-blue-200">Conecte e gerencie suas contas financeiras</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Controles do usuário -->
+                                <div class="flex items-center space-x-4">
+                                    <button class="glass-button p-3 rounded-xl hover:bg-white/20 transition-all duration-300">
+                                        <span class="text-white">🔔</span>
+                                    </button>
+                                    <button class="glass-button p-3 rounded-xl hover:bg-white/20 transition-all duration-300">
+                                        <span class="text-white">⚙️</span>
+                                    </button>
+                                </div>
                             </div>
-                            <div>
-                                <h1 class="text-2xl font-bold text-gradient">RP Finances</h1>
-                                <p class="text-sm text-secondary">Portfolio Inteligente</p>
+                        </div>
+                    </div>
+                </header>
+                
+                <!-- Conteúdo principal da tela Accounts -->
+                <main class="container mx-auto px-6 py-8">
+                    <!-- Cards de status e controles -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                        <!-- Card de status de conexão -->
+                        <div class="glass-card p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold text-primary">Status das Conexões</h3>
+                                <span id="connectionStatus" class="px-3 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
+                                    Aguardando...
+                                </span>
+                            </div>
+                            <p class="text-secondary text-sm">
+                                <span id="lastUpdate" class="font-medium">Carregando...</span>
+                            </p>
+                        </div>
+                        
+                        <!-- Card de ações rápidas -->
+                        <div class="glass-card p-6">
+                            <h3 class="text-lg font-semibold text-primary mb-4">Ações Rápidas</h3>
+                            <div class="space-y-3">
+                                <button id="connectBtn" class="btn-primary w-full">
+                                    <span class="flex items-center justify-center space-x-2">
+                                        <span>🔗</span>
+                                        <span>Conectar Conta</span>
+                                    </span>
+                                </button>
+                                <button id="clearCacheBtn" class="btn-secondary w-full">
+                                    <span class="flex items-center justify-center space-x-2">
+                                        <span>🗑️</span>
+                                        <span>Limpar Cache</span>
+                                    </span>
+                                </button>
                             </div>
                         </div>
                         
-                        <!-- Controles do header -->
-                        <div class="flex items-center space-x-4">
-                            <span id="lastUpdate" class="text-sm text-secondary hidden sm:block font-medium">
-                                Carregando...
-                            </span>
-                            <button id="clearCacheBtn" class="btn-secondary px-4 py-2 text-sm">
-                                <span class="flex items-center space-x-1">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                    </svg>
-                                    <span>Limpar</span>
-                                </span>
-                            </button>
-                            <button id="connectBtn" class="btn-primary px-6 py-3">
-                                <span class="flex items-center space-x-2">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
-                                    </svg>
-                                    <span>Conectar Contas</span>
-                                </span>
-                            </button>
+                        <!-- Card de estatísticas -->
+                        <div class="glass-card p-6">
+                            <h3 class="text-lg font-semibold text-primary mb-4">Estatísticas</h3>
+                            <div class="space-y-2">
+                                <div class="flex justify-between">
+                                    <span class="text-secondary">Contas conectadas:</span>
+                                    <span id="connectedAccounts" class="font-semibold">0</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-secondary">Última sincronização:</span>
+                                    <span id="lastSync" class="text-sm text-muted">--</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </nav>
+                    
+                    <!-- Conteúdo principal das contas conectadas -->
+                    <div id="connectedAccountsContainer" class="space-y-6">
+                        <!-- Lista de contas será inserida aqui dinamicamente -->
+                    </div>
+                    
+                    <!-- Status da coleta -->
+                    <div id="statusCard" class="glass-card p-6 mb-8 hidden">
+                        <div class="flex items-center">
+                            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-400 mr-3"></div>
+                            <span class="text-primary font-medium">Coletando dados dos investimentos...</span>
+                        </div>
+                    </div>
+                </main>
             </div>
-        </header>
-
-        <!-- Main Content -->
-        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             
-            <!-- Status da coleta com design escuro -->
-            <div id="statusCard" class="glass-card p-6 mb-8 hidden">
-                <div class="flex items-center">
-                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-400 mr-3"></div>
-                    <span class="text-primary font-semibold" id="statusText">Coletando investimentos...</span>
-                </div>
-            </div>
-
-            <!-- Resumo do Portfolio com design LinéaCore -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <!-- Card Valor Total -->
-                <div class="metric-card">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
-                            </svg>
-                        </div>
-                    </div>
-                    <p class="text-muted text-sm font-medium mb-1">Valor Total</p>
-                    <p id="totalValue" class="text-3xl font-bold text-primary">R$ --</p>
-                </div>
-
-                <!-- Card Investimentos -->
-                <div class="metric-card">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                            </svg>
-                        </div>
-                    </div>
-                    <p class="text-muted text-sm font-medium mb-1">Investimentos</p>
-                    <p id="totalCount" class="text-3xl font-bold text-primary">--</p>
-                </div>
-
-                <!-- Card Resultado -->
-                <div class="metric-card">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
-                            </svg>
-                        </div>
-                    </div>
-                    <p class="text-muted text-sm font-medium mb-1">Resultado</p>
-                    <p id="totalProfit" class="text-3xl font-bold text-primary">R$ --</p>
-                </div>
-
-                <!-- Card Rentabilidade -->
-                <div class="metric-card">
-                    <div class="flex items-center justify-between mb-4">
+            <!-- Tela de Portfolio (será criada dinamicamente) -->
+            <div id="portfolio-screen" class="min-h-screen" style="display: none;">
+                <!-- O dashboard moderno será carregado aqui -->
+    
+    <!-- Scripts -->
+    <script type="module" src="./ts/main.ts"></script>
+    
+    <!-- Pluggy Connect Widget (carregado quando necessário) -->
+    <div id="pluggy-connect-widget"></div>
+</body>
+</html>
                         <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center">
                             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
