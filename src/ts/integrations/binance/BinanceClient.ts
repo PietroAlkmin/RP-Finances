@@ -211,6 +211,22 @@ export class BinanceClient {
   }
 
   /**
+   * Obtém histórico de compras P2P (Peer-to-Peer)
+   * IMPORTANTE: Este endpoint pode conter suas compras diretas via P2P!
+   */
+  async getP2POrderHistory(options: { startTime?: number; endTime?: number; side?: 'BUY' | 'SELL' } = {}): Promise<any[]> {
+    return this.makeRequest<any[]>('GET', '/sapi/v1/c2c/orderMatch/listUserOrderHistory', options, true);
+  }
+
+  /**
+   * Obtém histórico de ordens fiat (compras com dinheiro real)
+   * IMPORTANTE: Este endpoint pode conter suas compras com cartão/transferência!
+   */
+  async getFiatOrderHistory(options: { transactionType?: 0 | 1; startTime?: number; endTime?: number } = {}): Promise<any[]> {
+    return this.makeRequest<any[]>('GET', '/sapi/v1/fiat/orders', options, true);
+  }
+
+  /**
    * MÉTODO PRINCIPAL: Gera resumo completo do portfolio Binance
    * Combina saldos, preços e estatísticas para criar visão consolidada
    */

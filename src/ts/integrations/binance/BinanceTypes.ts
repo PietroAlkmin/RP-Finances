@@ -265,7 +265,7 @@ export interface BinanceTransaction {
   amount: number;
   date: string;
   id: string;
-  source: 'TRADE' | 'DEPOSIT' | 'WITHDRAW' | 'CONVERT';
+  source: 'TRADE' | 'DEPOSIT' | 'WITHDRAW' | 'CONVERT' | 'P2P' | 'FIAT';
 }
 
 export interface BinanceAveragePriceCalculation {

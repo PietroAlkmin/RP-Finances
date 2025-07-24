@@ -338,6 +338,120 @@ app.get('/api/binance/sapi/v1/convert/tradeFlow', addBinanceAuth, async (req, re
   }
 });
 
+// P2P Trade History endpoint (com auth) - COMPRAS P2P BINANCE
+app.get('/api/binance/sapi/v1/c2c/orderMatch/listUserOrderHistory', addBinanceAuth, async (req, res) => {
+  try {
+    const url = new URL('/sapi/v1/c2c/orderMatch/listUserOrderHistory', BINANCE_BASE_URL);
+    
+    console.log(`🔍 Debug p2pHistory - req.binanceQuery:`, req.binanceQuery);
+    console.log(`🔍 Debug p2pHistory - signature em binanceQuery:`, req.binanceQuery.signature ? 'PRESENTE' : 'AUSENTE');
+    
+    // Adiciona query parameters incluindo a assinatura gerada pelo middleware
+    Object.keys(req.binanceQuery).forEach(key => {
+      url.searchParams.append(key, req.binanceQuery[key]);
+      console.log(`🔍 p2pHistory - Adicionando param: ${key} = ${req.binanceQuery[key].substring ? req.binanceQuery[key].substring(0, 16) + '...' : req.binanceQuery[key]}`);
+    });
+    
+    console.log(`🌐 Proxy Binance: GET ${url.toString()}`);
+    console.log(`🔐 p2pHistory - Query params incluem signature: ${url.searchParams.has('signature')}`);
+    
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: req.binanceHeaders
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      console.error('❌ Binance API Error:', data);
+      return res.status(response.status).json(data);
+    }
+    
+    console.log('✅ p2pHistory Binance API Success');
+    res.json(data);
+    
+  } catch (error) {
+    console.error('❌ p2pHistory Proxy Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Fiat Order History endpoint (com auth) - COMPRAS COM DINHEIRO REAL
+app.get('/api/binance/sapi/v1/fiat/orders', addBinanceAuth, async (req, res) => {
+  try {
+    const url = new URL('/sapi/v1/fiat/orders', BINANCE_BASE_URL);
+    
+    console.log(`🔍 Debug fiatOrders - req.binanceQuery:`, req.binanceQuery);
+    console.log(`🔍 Debug fiatOrders - signature em binanceQuery:`, req.binanceQuery.signature ? 'PRESENTE' : 'AUSENTE');
+    
+    // Adiciona query parameters incluindo a assinatura gerada pelo middleware
+    Object.keys(req.binanceQuery).forEach(key => {
+      url.searchParams.append(key, req.binanceQuery[key]);
+      console.log(`🔍 fiatOrders - Adicionando param: ${key} = ${req.binanceQuery[key].substring ? req.binanceQuery[key].substring(0, 16) + '...' : req.binanceQuery[key]}`);
+    });
+    
+    console.log(`🌐 Proxy Binance: GET ${url.toString()}`);
+    console.log(`🔐 fiatOrders - Query params incluem signature: ${url.searchParams.has('signature')}`);
+    
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: req.binanceHeaders
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      console.error('❌ Binance API Error:', data);
+      return res.status(response.status).json(data);
+    }
+    
+    console.log('✅ fiatOrders Binance API Success');
+    res.json(data);
+    
+  } catch (error) {
+    console.error('❌ fiatOrders Proxy Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// P2P order history endpoint (com auth) - NOVO TESTE PARA P2P!
+app.get('/api/binance/sapi/v1/c2c/orderMatch/listUserOrderHistory', addBinanceAuth, async (req, res) => {
+  try {
+    const url = new URL('/sapi/v1/c2c/orderMatch/listUserOrderHistory', BINANCE_BASE_URL);
+    
+    console.log(`🔍 Debug P2P - req.binanceQuery:`, req.binanceQuery);
+    console.log(`🔍 Debug P2P - signature em binanceQuery:`, req.binanceQuery.signature ? 'PRESENTE' : 'AUSENTE');
+    
+    // Adiciona query parameters incluindo a assinatura gerada pelo middleware
+    Object.keys(req.binanceQuery).forEach(key => {
+      url.searchParams.append(key, req.binanceQuery[key]);
+      console.log(`🔍 P2P - Adicionando param: ${key} = ${req.binanceQuery[key].substring ? req.binanceQuery[key].substring(0, 16) + '...' : req.binanceQuery[key]}`);
+    });
+    
+    console.log(`🌐 Proxy Binance: GET ${url.toString()}`);
+    console.log(`🔐 P2P - Query params incluem signature: ${url.searchParams.has('signature')}`);
+    
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: req.binanceHeaders
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      console.error('❌ Binance API Error:', data);
+      return res.status(response.status).json(data);
+    }
+    
+    console.log('✅ P2P Binance API Success');
+    res.json(data);
+    
+  } catch (error) {
+    console.error('❌ P2P Proxy Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 /**
  * Rota de health check
  */
