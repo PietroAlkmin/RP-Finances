@@ -1,8 +1,3 @@
-/**
- * Pluggy Connect Widget
- * This is a simplified mock version of the Pluggy Connect Widget for demo purposes
- */
-
 (function() {
     // Define the PluggyConnect class
     class PluggyConnect {
