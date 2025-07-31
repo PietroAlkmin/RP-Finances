@@ -243,7 +243,7 @@ export class PluggyClient {
    * Para análise completa de portfolio
    */
   async getAllInvestmentTransactions(itemIds: string[]): Promise<Map<string, InvestmentTransaction[]>> {
-    console.log(`🎯 Coletando transações de investimentos...`);
+    console.log(` Coletando transações de investimentos...`);
 
     const transactionsByInvestment = new Map<string, InvestmentTransaction[]>();
 
@@ -258,12 +258,12 @@ export class PluggyClient {
           transactionsByInvestment.set(investment.id, transactions);
         }
       } catch (error) {
-        console.warn(`⚠️ Erro ao buscar transações do investimento ${investment.name}:`, error);
+        console.warn(` Erro ao buscar transações do investimento ${investment.name}:`, error);
         // Continua com os outros investimentos mesmo se um falhar
       }
     }
 
-    console.log(`🎉 Total de investimentos com transações: ${transactionsByInvestment.size}`);
+    console.log(` Total de investimentos com transações: ${transactionsByInvestment.size}`);
     return transactionsByInvestment;
   }
 }
